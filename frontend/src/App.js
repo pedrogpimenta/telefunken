@@ -8,8 +8,18 @@ class App extends Component {
     super()
    
     this.state = {
-      endpoint: "localhost:4001",
-    }; 
+      endpoint: 'alocalhost:4001',
+      username: ''
+    } 
+  }
+
+  componentDidMount() {
+    const hasSavedUsername = !!localStorage.getItem('username')
+    const username = localStorage.getItem('username')
+
+    if (hasSavedUsername) {
+      this.setState({'username': username})
+    }
   }
 
 
