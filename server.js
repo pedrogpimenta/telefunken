@@ -28,21 +28,72 @@ function Deck() {
 
 
 
+let connectedClients = [];
 
 
 
 io.on('connection', function(socket){
-  console.log('a user connected');
+  const date = new Date()
+  const dateFormat = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
+  console.log(dateFormat, 'a user connected')
 
-  console.log(socket.id);
+  const socketClients = io.sockets.sockets
+  console.log('socketClients:', Object.keys(socketClients).length)
 
-  socket.on('test', function(msg){
-    console.log(msg);
-  });
+  socket.on('username', function(username){
+    const doesUserExist = () => {
+      let userExists = false
+      for (i in connectedClients) {
+        if (connectedClients[i].username === username) {
+          userExists = true
+        }
+      }
+      return userExists
+    }
+
+    const getUserCards = () => {
+      for (var i in connectedClients) {
+        if (connectedClients[i].username === username) {
+          return connectedClients[i].cards
+        }
+      }
+    }
+
+    if (!doesUserExist()) {
+      connectedClients.push({
+        'socketId': socket.id,
+        'id': connectedClients.length + 1,
+        'username': username,
+        'cards': 0
+      })
+    }
+
+    console.log('username:', username)
+    console.log('user cards:', getUserCards())
+
+    socket.emit('updateUserCards', getUserCards())
+    socket.emit('connectedUsers', connectedClients)
+  })
+
+  socket.on('handleCardAddButton', function(user){
+    console.log('thisUser:', user)
+    console.log('thisUserUsername:', user.username)
+
+    for (var item in connectedClients) {
+      if (connectedClients[item].username === user.username) {
+        connectedClients[item].cards += 1
+      }
+    }
+
+    console.log('connectedClients:', connectedClients)
+
+    socket.broadcast.emit('connectedUsers', connectedClients)
+    
+  })
 
   socket.on('disconnect', function(){
-    console.log('user disconnected');
-  });
-});
+    console.log('user disconnected')
+  })
+})
 
 http.listen(port, () => console.log(`Listening on port ${port}`))
