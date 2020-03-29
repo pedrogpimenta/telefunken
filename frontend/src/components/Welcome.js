@@ -7,7 +7,8 @@ class Welcome extends Component {
     super()
    
     this.state = {
-      username: ''
+      username: '',
+      gameId: ''
     } 
   }
 
@@ -20,14 +21,21 @@ class Welcome extends Component {
     const handleGoButton = (e) => {
       e.preventDefault()
       const username = document.getElementById('welcome__input--username').value
+      const gameId = document.getElementById('welcome__input--gameId').value
 
       localStorage.setItem('username', username)
-      this.props.history.push('/game')
+      localStorage.setItem('gameId', gameId)
+      this.props.history.push(`/game/${gameId}`)
     }
 
     const handleUsernameInputChange = () => {
       const username = document.getElementById('welcome__input--username').value
       this.setState({'username': username})
+    }
+
+    const handleGameIdInputChange = () => {
+      const gameId = document.getElementById('welcome__input--gameId').value
+      this.setState({'gameId': gameId})
     }
 
     return (
@@ -42,7 +50,17 @@ class Welcome extends Component {
             value={this.state.username}
             onChange={() => handleUsernameInputChange()}
           />
-          <button onClick={(e) => handleGoButton(e)}>Go!</button>
+          <p>Name a game:</p>
+          <input
+            id="welcome__input--gameId"
+            type="text"
+            placeholder="Enter game ID"
+            value={this.state.gameId}
+            onChange={() => handleGameIdInputChange()}
+          />
+          <p>
+            <button onClick={(e) => handleGoButton(e)}>Go!</button>
+          </p>
         </form>
       </div>
     )

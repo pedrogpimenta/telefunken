@@ -3,7 +3,7 @@ import React from "react"
 function Player(props) {
   return (
     <div>
-      {props.username} | {props.cards}
+      {props.user.username} | {props.user.cards}
     </div>
   )
 }

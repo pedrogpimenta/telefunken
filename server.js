@@ -32,6 +32,91 @@ let connectedClients = [];
 
 
 
+const broche = io.of('/game/broche')
+broche.on('connection', function(socket) {
+  console.log('a user connected to broche')
+  const socketClients = io.sockets.sockets
+  console.log('socketClients:', Object.keys(socketClients).length)
+
+  socket.on('login', function(username){
+    const doesUserExist = () => {
+      let userExists = false
+      for (i in connectedClients) {
+        if (connectedClients[i].username === username) {
+          userExists = i 
+        }
+      }
+      return userExists
+    }
+
+    const getUserCards = () => {
+      for (var i in connectedClients) {
+        if (connectedClients[i].username === username) {
+          return connectedClients[i].cards
+        }
+      }
+    }
+
+    if (doesUserExist()) {
+      console.log('user exists:', socket.id)
+      connectedClients[doesUserExist()].socketId = socket.id
+      connectedClients[doesUserExist()].isOnline = true
+    } else {
+      connectedClients.push({
+        'socketId': socket.id,
+        'id': connectedClients.length + 1,
+        'username': username,
+        'cards': 0,
+        'isOnline': true
+      })
+    }
+
+    socket.emit('updateUserCards', getUserCards())
+    socket.broadcast.emit('connectedUsers', connectedClients)
+    socket.emit('connectedUsers', connectedClients)
+  })
+
+  socket.on('handleCardAddButton', function(user){
+    console.log('thisUser:', user)
+    console.log('thisUserUsername:', user.username)
+
+    for (var item in connectedClients) {
+      if (connectedClients[item].username === user.username) {
+        connectedClients[item].cards += 1
+      }
+    }
+
+    console.log('connectedClients:', connectedClients)
+
+    socket.broadcast.emit('connectedUsers', connectedClients)
+    
+  })
+
+  socket.on('disconnect', function(){
+    console.log('user disconnected')
+    const doesUserExist = () => {
+      let userExists = false
+      for (i in connectedClients) {
+        if (connectedClients[i].socketId === socket.id) {
+          userExists = i 
+        }
+      }
+      return userExists
+    }
+
+    if (doesUserExist()) {
+      connectedClients[doesUserExist()].isOnline = false
+    }
+    console.log('room socketid:', socket.id)
+    socket.broadcast.emit('connectedUsers', connectedClients)
+
+  })
+
+})
+
+
+
+
 io.on('connection', function(socket){
   const date = new Date()
   const dateFormat = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
@@ -93,6 +178,23 @@ io.on('connection', function(socket){
 
   socket.on('disconnect', function(){
     console.log('user disconnected')
+
+    console.log('socket.id:', socket.id)
+
+
+    //const doesUserExist = () => {
+    //  let username = false
+    //  for (i in connectedClients) {
+    //    if (connectedClients[i].username === username) {
+    //      userIndex = i
+    //    }
+    //  }
+    //  return userIndex
+    //}
+    //if (doesUserExist()) {
+    //
+    //}
+
   })
 })
 
