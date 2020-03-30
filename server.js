@@ -137,6 +137,7 @@ game.on('connection', function(socket) {
 
   socket.on('disconnect', function(gameId){
     console.log('user disconnected')
+    thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
 
     const doesUserExist = () => {
       let userExists = false
@@ -153,7 +154,7 @@ game.on('connection', function(socket) {
       thisDb.connectedClients[doesUserExist()].isOnline = false
     }
 
-    //fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisDb), (err) => {})
+    fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisDb), (err) => {})
     game.to(thisGameId).emit('connectedUsers', thisDb.connectedClients)
 
   })
