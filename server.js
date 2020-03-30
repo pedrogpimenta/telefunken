@@ -1,10 +1,21 @@
-const app = require('express')()
+const express = require('express')
+const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 const fs = require('fs')
 
 // our localhost port
 const port = 4001
+
+
+
+
+app.use(express.static(__dirname + '/frontend/build/'));
+app.get('/*', (req, res) => {
+  res.sendFile(__dirname + '/frontend/build/index.html');
+});
+
+
 
 
 
@@ -25,6 +36,11 @@ function Deck() {
 
   return deck;
 }
+
+
+
+
+
 
 
 
