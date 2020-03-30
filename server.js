@@ -1,6 +1,7 @@
-const app = require('express')();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const app = require('express')()
+const http = require('http').createServer(app)
+const io = require('socket.io')(http)
+const fs = require('fs')
 
 // our localhost port
 const port = 4001
@@ -28,174 +29,137 @@ function Deck() {
 
 
 
+
+
+
+// Set inital clients array
 let connectedClients = [];
 
+// Set namespace 'game'
+const game = io.of('/game')
 
 
-const broche = io.of('/game/broche')
-broche.on('connection', function(socket) {
-  console.log('a user connected to broche')
+// On Init connection to game
+game.on('connection', function(socket) {
+  let thisGameId = socket.handshake.query.gameId
+  console.log('a user connected to:', thisGameId)
+
+  // Create empty room in DB if it doesn't exist
+  if (!fs.existsSync('db/' + thisGameId + '.js')) {
+    fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify({ connectedClients: [] }), (err) => {})
+  }
+
+  // Create room array and populate
+  let thisDb
+  thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+
+  // Log all connected clients to socket
   const socketClients = io.sockets.sockets
-  console.log('socketClients:', Object.keys(socketClients).length)
 
-  socket.on('login', function(username){
+  // Join specific room
+  socket.join(thisGameId)
+
+  socket.on('login', function(gameId, username){
+    thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+
+    // Check if user exists in array
     const doesUserExist = () => {
       let userExists = false
-      for (i in connectedClients) {
-        if (connectedClients[i].username === username) {
+      for (i in thisDb.connectedClients) {
+        if (thisDb.connectedClients[i].username === username) {
           userExists = i 
         }
       }
       return userExists
     }
 
-    const getUserCards = () => {
-      for (var i in connectedClients) {
-        if (connectedClients[i].username === username) {
-          return connectedClients[i].cards
-        }
+    // Add or Update user
+    if (thisDb.connectedClients.length > 0) {
+      // Update user if found
+      if (doesUserExist()) {
+        thisDb.connectedClients[doesUserExist()].socketId = socket.id
+        thisDb.connectedClients[doesUserExist()].isOnline = true
+      } else {
+        // Add user if not found
+        thisDb.connectedClients.push({
+          'socketId': socket.id,
+          'id': connectedClients.length + 1,
+          'gameId': gameId,
+          'username': username,
+          'cards': 0,
+          'isOnline': true
+        })
       }
-    }
-
-    if (doesUserExist()) {
-      console.log('user exists:', socket.id)
-      connectedClients[doesUserExist()].socketId = socket.id
-      connectedClients[doesUserExist()].isOnline = true
     } else {
-      connectedClients.push({
+      // Add user if none exists
+      thisDb.connectedClients.push({
         'socketId': socket.id,
         'id': connectedClients.length + 1,
+        'gameId': gameId,
         'username': username,
         'cards': 0,
         'isOnline': true
       })
     }
 
-    socket.emit('updateUserCards', getUserCards())
-    socket.broadcast.emit('connectedUsers', connectedClients)
-    socket.emit('connectedUsers', connectedClients)
-  })
+    // Write users to db
+    fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(thisDb), (err) => {})
 
-  socket.on('handleCardAddButton', function(user){
-    console.log('thisUser:', user)
-    console.log('thisUserUsername:', user.username)
-
-    for (var item in connectedClients) {
-      if (connectedClients[item].username === user.username) {
-        connectedClients[item].cards += 1
+    // Update User Cards
+    const getUserCards = () => {
+      for (var i in thisDb.connectedClients) {
+        if (thisDb.connectedClients[i].username === username) {
+          return thisDb.connectedClients[i].cards
+        }
       }
     }
+    const userCards = getUserCards()
 
-    console.log('connectedClients:', connectedClients)
+    // Send saved user info
+    game.to(gameId).emit('updateUserInfo', {username: username, socketId: socket.id, userCards: userCards})
+    // Send connected users info
+    game.to(gameId).emit('connectedUsers', thisDb.connectedClients)
+  })
 
-    socket.broadcast.emit('connectedUsers', connectedClients)
+  // Hanlde Card Add Button
+  socket.on('handleCardAddButton', function(gameId, user){
+    thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+    for (var item in thisDb.connectedClients) {
+      if (thisDb.connectedClients[item].username === user.username) {
+        thisDb.connectedClients[item].cards += 1
+      }
+    }
+    fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(thisDb), (err) => {})
+
+    socket.broadcast.to(gameId).emit('connectedUsers', thisDb.connectedClients)
     
   })
 
-  socket.on('disconnect', function(){
+  socket.on('disconnect', function(gameId){
     console.log('user disconnected')
+
     const doesUserExist = () => {
       let userExists = false
-      for (i in connectedClients) {
-        if (connectedClients[i].socketId === socket.id) {
+      for (i in thisDb.connectedClients) {
+        if (thisDb.connectedClients[i].socketId === socket.id) {
           userExists = i 
         }
       }
       return userExists
     }
 
+    // Set user as offline
     if (doesUserExist()) {
-      connectedClients[doesUserExist()].isOnline = false
+      thisDb.connectedClients[doesUserExist()].isOnline = false
     }
-    console.log('room socketid:', socket.id)
-    socket.broadcast.emit('connectedUsers', connectedClients)
+
+    //fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisDb), (err) => {})
+    game.to(thisGameId).emit('connectedUsers', thisDb.connectedClients)
 
   })
 
 })
 
 
-
-
-io.on('connection', function(socket){
-  const date = new Date()
-  const dateFormat = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
-  console.log(dateFormat, 'a user connected')
-
-  const socketClients = io.sockets.sockets
-  console.log('socketClients:', Object.keys(socketClients).length)
-
-  socket.on('username', function(username){
-    const doesUserExist = () => {
-      let userExists = false
-      for (i in connectedClients) {
-        if (connectedClients[i].username === username) {
-          userExists = true
-        }
-      }
-      return userExists
-    }
-
-    const getUserCards = () => {
-      for (var i in connectedClients) {
-        if (connectedClients[i].username === username) {
-          return connectedClients[i].cards
-        }
-      }
-    }
-
-    if (!doesUserExist()) {
-      connectedClients.push({
-        'socketId': socket.id,
-        'id': connectedClients.length + 1,
-        'username': username,
-        'cards': 0
-      })
-    }
-
-    console.log('username:', username)
-    console.log('user cards:', getUserCards())
-
-    socket.emit('updateUserCards', getUserCards())
-    socket.emit('connectedUsers', connectedClients)
-  })
-
-  socket.on('handleCardAddButton', function(user){
-    console.log('thisUser:', user)
-    console.log('thisUserUsername:', user.username)
-
-    for (var item in connectedClients) {
-      if (connectedClients[item].username === user.username) {
-        connectedClients[item].cards += 1
-      }
-    }
-
-    console.log('connectedClients:', connectedClients)
-
-    socket.broadcast.emit('connectedUsers', connectedClients)
-    
-  })
-
-  socket.on('disconnect', function(){
-    console.log('user disconnected')
-
-    console.log('socket.id:', socket.id)
-
-
-    //const doesUserExist = () => {
-    //  let username = false
-    //  for (i in connectedClients) {
-    //    if (connectedClients[i].username === username) {
-    //      userIndex = i
-    //    }
-    //  }
-    //  return userIndex
-    //}
-    //if (doesUserExist()) {
-    //
-    //}
-
-  })
-})
 
 http.listen(port, () => console.log(`Listening on port ${port}`))

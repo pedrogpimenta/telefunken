@@ -17,7 +17,8 @@ class App extends Component {
     // Set Increment
     this.props.dispatch({ type: "INCREMENT_USER_CARDS", value: 1 })
     // Send Increment
-    this.socket.emit('handleCardAddButton', this.props.user)
+    console.log('gameId:', this.props.gameId)
+    this.socket.emit('handleCardAddButton', this.props.gameId, this.props.user)
   }
 
   componentDidMount() {
@@ -26,31 +27,35 @@ class App extends Component {
     this.props.dispatch({ type: "SET_GAMEID", gameId: gamePath })
 
     // Socket connect
-    this.socket = io.connect(this.props.endpoint + '/game/' + gamePath);
+    this.socket = io.connect(this.props.endpoint, { query: 'gameId='+gamePath })
 
     // Set username
     const username = !!localStorage.getItem('username') ? localStorage.getItem('username') : ''
     this.props.dispatch({ type: "SET_USERNAME", username: username })
 
     // Socket Login
-    this.socket.emit('login', username)
+    this.socket.emit('login', gamePath, username)
+
+    // Update user info
+    this.socket.on('updateUserInfo', (userInfo) => {
+      if (this.props.user.username === userInfo.username) {
+        this.props.dispatch({ type: "UPDATE_USER_INFO", username: userInfo.username, id: userInfo.id, userCards: userInfo.userCards })
+      }
+    })
 
     // Update connectedUsers
     this.socket.on('connectedUsers', (connectedUsers) => {
       this.props.dispatch({ type: "SET_CONNECTEDUSERS", value: connectedUsers })
     })
-
-    // Update user cards
-    this.socket.on('updateUserCards', (numberOfCards) => {
-      this.props.dispatch({ type: "UPDATE_USER_CARDS", value: numberOfCards })
-    })
-
   }
 
   render() {
+    // Render user info
     const renderUser = () => <Player key={this.props.user.username} user={this.props.user} />
+
+    // Render other players
     const renderPlayers = this.props.connectedUsers.map(player => {
-      if (player.username !== this.props.user.username && player.isOnline) {
+      if (player.username !== this.props.user.username) {
         return (
           <Player key={player.username} user={player} />
         )

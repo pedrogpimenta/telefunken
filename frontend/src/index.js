@@ -21,10 +21,11 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux'
 
 const initialState = {
-  endpoint: 'localhost:4001',
+  endpoint: 'localhost:4001/game',
   gameId: '',
   connectedUsers: [],
   user: {
+    socketId: '',
     username: '',
     cards: 0
   },
@@ -64,12 +65,14 @@ function reducer(state = initialState, action) {
         ...state,
         connectedUsers: action.value
       }
-    case 'UPDATE_USER_CARDS':
+    case 'UPDATE_USER_INFO':
       return {
         ...state,
         user: {
           ...state.user,
-          cards: action.value
+          id: action.id,
+          username: action.username,
+          cards: action.userCards
         }
       }
 
