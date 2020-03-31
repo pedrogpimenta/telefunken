@@ -5,6 +5,7 @@ import { withRouter } from 'react-router-dom'
 import io from 'socket.io-client'
 
 import Player from './Player'
+import Button from './Button.js'
 
 // Making the App component
 class App extends Component {
@@ -51,7 +52,7 @@ class App extends Component {
 
   render() {
     // Render user info
-    const renderUser = () => <Player key={this.props.user.username} user={this.props.user} />
+    const renderUser = () => <Player key={this.props.user.username} user={this.props.user}  />
 
     // Render other players
     const renderPlayers = this.props.connectedUsers.map(player => {
@@ -76,7 +77,12 @@ class App extends Component {
           Number of connected players: {this.props.connectedUsers.length}
         </div>
         <div>
-          <button onClick={() => this.handleCardAddButton()}>Add test</button>
+          <Button
+            classes="m-2"
+            onClick={(e) => this.handleCardAddButton(e)}
+          >
+            Go!
+          </Button>
         </div>
       </div>
     )

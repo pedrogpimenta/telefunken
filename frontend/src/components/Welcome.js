@@ -1,6 +1,9 @@
 import React, { Component } from 'react'
 import { withRouter } from 'react-router-dom'
 
+import Input from './Input.js'
+import Button from './Button.js'
+
 // Making the App component
 class Welcome extends Component {
   constructor() {
@@ -43,23 +46,28 @@ class Welcome extends Component {
         <h2>Welcome!</h2>
         <form action="submit">
           <p>What's your name?</p>
-          <input
-            id="welcome__input--username"
+          <Input
             type="text"
+            id="welcome__input--username"
             placeholder="Enter name"
             value={this.state.username}
             onChange={() => handleUsernameInputChange()}
           />
           <p>Name a game:</p>
-          <input
-            id="welcome__input--gameId"
+          <Input
             type="text"
+            id="welcome__input--gameId"
             placeholder="Enter game ID"
             value={this.state.gameId}
             onChange={() => handleGameIdInputChange()}
           />
           <p>
-            <button onClick={(e) => handleGoButton(e)}>Go!</button>
+            <Button
+              classes="m-2"
+              onClick={(e) => handleGoButton(e)}
+            >
+              Go!
+            </Button>
           </p>
         </form>
       </div>
