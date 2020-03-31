@@ -6,9 +6,11 @@ import {
   Route
 } from "react-router-dom"
 
-import './index.css'
-import Welcome from './components/Welcome'
+//import './index.css'
+import './assets/main.css'
+
 import App from './components/App'
+import Welcome from './components/Welcome'
 
 import * as serviceWorker from './serviceWorker'
 
