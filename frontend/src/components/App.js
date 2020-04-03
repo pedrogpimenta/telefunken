@@ -4,21 +4,22 @@ import { connect } from 'react-redux'
 import { withRouter } from 'react-router-dom'
 import io from 'socket.io-client'
 
+import renderCards from '../renderCards'
+
 import Player from './Player'
+import Button from './Button'
 
 // Making the App component
 class App extends Component {
-  constructor() {
-    super()
-    this.handleCardAddButton = this.handleCardAddButton.bind(this)
+  handleStartGameButton() {
+    this.socket.emit('start game', this.props.gameId, this.props.user.username)
   }
 
-  handleCardAddButton() {
-    // Set Increment
-    this.props.dispatch({ type: "INCREMENT_USER_CARDS", value: 1 })
-    // Send Increment
-    console.log('gameId:', this.props.gameId)
-    this.socket.emit('handleCardAddButton', this.props.gameId, this.props.user)
+  handleResetButton() {
+    let confirmDelete = window.confirm('Are you sure you want to delete?')
+    if (confirmDelete) {
+      this.socket.emit('reset game', this.props.gameId)
+    }
   }
 
   componentDidMount() {
@@ -39,13 +40,18 @@ class App extends Component {
     // Update user info
     this.socket.on('updateUserInfo', (userInfo) => {
       if (this.props.user.username === userInfo.username) {
-        this.props.dispatch({ type: "UPDATE_USER_INFO", username: userInfo.username, id: userInfo.id, userCards: userInfo.userCards })
+        this.props.dispatch({
+          type: "UPDATE_USER_INFO",
+          username: userInfo.username,
+          id: userInfo.id,
+          hand: userInfo.hand
+        })
       }
     })
 
-    // Update connectedUsers
-    this.socket.on('connectedUsers', (connectedUsers) => {
-      this.props.dispatch({ type: "SET_CONNECTEDUSERS", value: connectedUsers })
+    // update game
+    this.socket.on('updateGame', (gameDb) => {
+      this.props.dispatch({ type: "UPDATE_GAME", value: gameDb })
     })
   }
 
@@ -54,7 +60,7 @@ class App extends Component {
     const renderUser = () => <Player key={this.props.user.username} user={this.props.user} />
 
     // Render other players
-    const renderPlayers = this.props.connectedUsers.map(player => {
+    const renderPlayers = this.props.gameDb.players.map(player => {
       if (player.username !== this.props.user.username) {
         return (
           <Player key={player.username} user={player} />
@@ -65,15 +71,26 @@ class App extends Component {
 
     return (
       <div style={{ textAlign: "center" }}>
-        <div>
+        <div className="inline-flex items-center">
           <span>You: {renderUser()}</span>
         </div>
         <hr />
         <div>
           <span>Other players:</span><span>{renderPlayers}</span>
         </div>
+        <div className="inline-flex items-center my-2">
+          Discard pile: {renderCards(this.props.gameDb.discard)}
+        </div>
         <div>
-          Number of connected players: {this.props.connectedUsers.length}
+          Number of connected players: {this.props.gameDb.players.length}
+        </div>
+        <div>
+          <Button
+            classes="m-2"
+            onClick={(e) => this.handleStartGameButton(e)}
+          >
+            Start game!
+          </Button>
         </div>
         <div>
           <button onClick={() => this.handleCardAddButton()}>Add test</button>
@@ -88,6 +105,7 @@ function mapStateToProps(state) {
     count: state.count,
     endpoint: state.endpoint,
     gameId: state.gameId,
+    gameDb: state.gameDb,
     connectedUsers: state.connectedUsers,
     user: state.user
   }
