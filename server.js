@@ -4,12 +4,13 @@ const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 const fs = require('fs')
 
+const tools = require('./helpers/tools.js')
+const dbTools = require('./helpers/dbTools.js')
+
 // our localhost port
 const port = 4001
 
-
-
-
+// Serve frontend
 app.use(express.static(__dirname + '/frontend/build/'));
 app.get('/*', (req, res) => {
   res.sendFile(__dirname + '/frontend/build/index.html');
@@ -21,20 +22,70 @@ app.get('/*', (req, res) => {
 
 
 
-// my shitz
-function Deck() {
-  const suits = ['spades', 'diamonds', 'clubs', 'hearts'];
-  const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-
-  const deck = [];
-  for(var i = 0; i < suits.length; i++) {
-    for(var x = 0; x < values.length; x++) {
-    	var card = {Value: values[x], Suit: suits[i]};
-    	deck.push(card);
+// data model for game database
+const NOTFORUSE_gameDb = {
+  gameId: '',
+  deck: [], // initial cards
+  stock: [], // remaining cards for play
+  discard: [],
+  totalRounds: 6,
+  currentRound: 1,
+  direction: '', // clockwise/counterclockwise
+  startingPlayer: '',
+  currentPlayerTurn: '',
+  table: [], // stores array of cards on table
+  players: [ // keeps track of players and events
+    {
+      id: '',
+      socketId: '',
+      username: '',
+      hand: [],
+      buys: 6,
+      totalPoints: 0,
+      isOnline: true,
+      events: [
+        {
+          roundNumber: 1, // number of the round
+          buys: 0, // how many buys in this round
+          points: 0 // if 0, player cut in this round
+        }
+      ]
     }
-  }
+  ]
+}
 
-  return deck;
+const initNewGame = function(gameId) {
+  let thisGameDb = dbTools.getGameDb(gameId)
+  
+  // give 7 cards to players
+  // assign first player
+
+  // set game deck and stock
+  dbTools.setGameDb(gameId, {stock: tools.getDeck(2)})
+  thisGameDb = dbTools.getGameDb(gameId)
+
+  // put 3 cards on discard pile
+  const result = dbTools.getCardsFromStock(gameId, 3)
+  dbTools.setGameDb(gameId, {
+    stock: result.newStock,
+    discard: result.cards
+  })
+  thisGameDb = dbTools.getGameDb(gameId)
+
+  // give cards to players
+  //console.log('thisGameDb.players1:', thisGameDb.players)
+  for (i in thisGameDb.players) {
+    const thisUsername = thisGameDb.players[i].username
+    const result = dbTools.getCardsFromStock(gameId, 11)
+
+    dbTools.setGameDb(gameId, {
+      stock: result.newStock,
+      player: {
+        username: thisUsername,
+        hand: result.cards
+      }
+    })
+  }
 }
 
 
@@ -48,116 +99,157 @@ function Deck() {
 
 
 
-// Set inital clients array
-let connectedClients = [];
 
-// Set namespace 'game'
+
+
+console.log('-------------------------------')
+console.log('-------------------------------')
+console.log('-------------------------------')
+console.log('-------------------------------')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --------------------------------- 
+// Socket server stuff
+// ---------------------------------
+
+// set namespace 'game'
 const game = io.of('/game')
 
 
-// On Init connection to game
-game.on('connection', function(socket) {
-  let thisGameId = socket.handshake.query.gameId
-  console.log('a user connected to:', thisGameId)
 
-  // Create empty room in DB if it doesn't exist
-  if (!fs.existsSync('db/' + thisGameId + '.js')) {
-    fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify({ connectedClients: [] }), (err) => {})
+
+
+
+
+
+// HELPER: send user info
+const sendUserInfo = function(gameId, gameDb, username) {
+  for (i in gameDb.players) {
+    if (gameDb.players[i].username === username) {
+      game.to(gameId).emit('updateUserInfo', gameDb.players[i])
+    }
+  }
+}
+
+// HELPER: send user info to all users
+const sendEachUserInfo = function(gameId, gameDb, username) {
+  for (i in gameDb.players) {
+    game.to(gameDb.players[i].socketId).emit('updateUserInfo', gameDb.players[i])
+  }
+}
+
+const sendGameInfo = function(gameId, gameDb) {
+  let thisGamePublicDb = gameDb
+
+  if (thisGamePublicDb.discard.length > 0) {
+    thisGamePublicDb.discard[0].value = ''
+    thisGamePublicDb.discard[0].suit = ''
+    thisGamePublicDb.discard[1].value = ''
+    thisGamePublicDb.discard[1].suit = ''
+  }
+  for (i in thisGamePublicDb.players) {
+    thisGamePublicDb.players[i].hand = []
   }
 
-  // Create room array and populate
-  let thisDb
-  thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+  game.to(gameId).emit('updateGame', thisGamePublicDb)
+}
+
+
+
+
+
+
+// on Init connection to game
+game.on('connection', function(socket) {
+  console.log('user connected')
+
+  let thisGameId = socket.handshake.query.gameId
+
+  // create empty room in DB if it doesn't exist
+  dbTools.setGameDb(thisGameId)
 
   // Log all connected clients to socket
-  const socketClients = io.sockets.sockets
+  //const socketClients = io.sockets.sockets
 
   // Join specific room
   socket.join(thisGameId)
 
-  socket.on('login', function(gameId, username){
-    thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
 
-    // Check if user exists in array
-    const doesUserExist = () => {
-      let userExists = false
-      for (i in thisDb.connectedClients) {
-        if (thisDb.connectedClients[i].username === username) {
-          userExists = i 
-        }
-      }
-      return userExists
-    }
 
-    // Add or Update user
-    if (thisDb.connectedClients.length > 0) {
-      // Update user if found
-      if (doesUserExist()) {
-        thisDb.connectedClients[doesUserExist()].socketId = socket.id
-        thisDb.connectedClients[doesUserExist()].isOnline = true
-      } else {
-        // Add user if not found
-        thisDb.connectedClients.push({
-          'socketId': socket.id,
-          'id': connectedClients.length + 1,
-          'gameId': gameId,
-          'username': username,
-          'cards': 0,
-          'isOnline': true
-        })
-      }
-    } else {
-      // Add user if none exists
-      thisDb.connectedClients.push({
-        'socketId': socket.id,
-        'id': connectedClients.length + 1,
-        'gameId': gameId,
-        'username': username,
-        'cards': 0,
-        'isOnline': true
-      })
-    }
 
-    // Write users to db
-    fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(thisDb), (err) => {})
+  // user login
+  socket.on('login', function(gameId, username) {
+    let thisGameDb = dbTools.getGameDb(thisGameId)
+    console.log('user:', username, 'login to:', gameId)
 
-    // Update User Cards
-    const getUserCards = () => {
-      for (var i in thisDb.connectedClients) {
-        if (thisDb.connectedClients[i].username === username) {
-          return thisDb.connectedClients[i].cards
-        }
-      }
-    }
-    const userCards = getUserCards()
+    // Set player
+    dbTools.setGameDb(thisGameId, {player: {username: username, socketId: socket.id}})
+    thisGameDb = dbTools.getGameDb(thisGameId)
 
     // Send saved user info
-    game.to(gameId).emit('updateUserInfo', {username: username, socketId: socket.id, userCards: userCards})
-    // Send connected users info
-    game.to(gameId).emit('connectedUsers', thisDb.connectedClients)
-  })
-
-  // Hanlde Card Add Button
-  socket.on('handleCardAddButton', function(gameId, user){
-    thisDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
-    for (var item in thisDb.connectedClients) {
-      if (thisDb.connectedClients[item].username === user.username) {
-        thisDb.connectedClients[item].cards += 1
+    for (i in thisGameDb.players) {
+      if (thisGameDb.players[i].username === username) {
+        game.to(thisGameId).emit('updateUserInfo', thisGameDb.players[i])
       }
     }
-    fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(thisDb), (err) => {})
 
-    socket.broadcast.to(gameId).emit('connectedUsers', thisDb.connectedClients)
-    
+    // Send connected users info
+    //console.log('thisGameDb.players:', thisGameDb.players)
+    sendGameInfo(gameId, thisGameDb)
   })
 
-  socket.on('disconnect', function(gameId){
-    console.log('user disconnected')
+
+
+
+  // start game
+  socket.on('start game', function(gameId, username) {
+    //thisGameDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+    initNewGame(thisGameId)
+
+    let thisGameDb = dbTools.getGameDb(gameId)
+
+    sendEachUserInfo(gameId, thisGameDb)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  socket.on('disconnect', function() {
+    thisGameDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
 
     const doesUserExist = () => {
       let userExists = false
-      for (i in thisDb.connectedClients) {
-        if (thisDb.connectedClients[i].socketId === socket.id) {
+      for (i in thisGameDb.connectedClients) {
+        if (thisGameDb.connectedClients[i].socketId === socket.id) {
           userExists = i 
         }
       }
@@ -166,11 +258,10 @@ game.on('connection', function(socket) {
 
     // Set user as offline
     if (doesUserExist()) {
-      thisDb.connectedClients[doesUserExist()].isOnline = false
+      thisGameDb.connectedClients[doesUserExist()].isOnline = false
     }
 
-    //fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisDb), (err) => {})
-    game.to(thisGameId).emit('connectedUsers', thisDb.connectedClients)
+    fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisGameDb), (err) => {})
 
   })
 
