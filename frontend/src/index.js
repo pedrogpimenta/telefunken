@@ -24,6 +24,36 @@ const initialState = {
   endpoint: 'localhost:4001/game',
   gameId: '',
   connectedUsers: [],
+  gameDb: {
+    gameId: '',
+    deck: [], // initial cards
+    stock: [], // remaining cards for play
+    discard: [],
+    totalRounds: 6,
+    currentRound: 1,
+    direction: '', // clockwise/counterclockwise
+    startingPlayer: '',
+    currentPlayerTurn: '',
+    table: [], // stores array of cards on table
+    players: [ // keeps track of players and events
+      {
+        id: '',
+        socketId: '',
+        username: '',
+        hand: [],
+        buys: 6,
+        totalPoints: 0,
+        isOnline: true,
+        events: [
+          {
+            roundNumber: 1, // number of the round
+            buys: 0, // how many buys in this round
+            points: 0 // if 0, player cut in this round
+          }
+        ]
+      }
+    ]
+  },
   user: {
     socketId: '',
     username: '',
@@ -60,10 +90,10 @@ function reducer(state = initialState, action) {
           cards: state.user.cards + 1
         }
       }
-    case 'SET_CONNECTEDUSERS':
+    case 'UPDATE_GAME':
       return {
         ...state,
-        connectedUsers: action.value
+        gameDb: action.value
       }
     case 'UPDATE_USER_INFO':
       return {
@@ -72,7 +102,7 @@ function reducer(state = initialState, action) {
           ...state.user,
           id: action.id,
           username: action.username,
-          cards: action.userCards
+          hand: action.hand
         }
       }
 
