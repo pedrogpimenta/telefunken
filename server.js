@@ -56,7 +56,6 @@ const NOTFORUSE_gameDb = {
 const initNewGame = function(gameId) {
   let thisGameDb = dbTools.getGameDb(gameId)
   
-  // give 7 cards to players
   // assign first player
 
   // set game deck and stock
@@ -72,7 +71,6 @@ const initNewGame = function(gameId) {
   thisGameDb = dbTools.getGameDb(gameId)
 
   // give cards to players
-  //console.log('thisGameDb.players1:', thisGameDb.players)
   for (i in thisGameDb.players) {
     const thisUsername = thisGameDb.players[i].username
     const result = dbTools.getCardsFromStock(gameId, 11)
