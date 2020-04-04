@@ -29,10 +29,9 @@ const NOTFORUSE_gameDb = {
   stock: [], // remaining cards for play
   discard: [],
   totalRounds: 6,
-  currentRound: 1,
+  currentRound: 0,
+  currentPlayer: '',
   direction: '', // clockwise/counterclockwise
-  startingPlayer: '',
-  currentPlayerTurn: '',
   table: [], // stores array of cards on table
   players: [ // keeps track of players and events
     {
