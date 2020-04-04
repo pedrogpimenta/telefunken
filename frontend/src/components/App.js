@@ -123,12 +123,14 @@ class App extends Component {
         {renderStock()}
         {renderDiscardPile()}
         <div>
-          <Button
-            classes="m-2"
-            onClick={(e) => this.handleCardAddButton(e)}
-          >
-            Go!
-          </Button>
+          {!this.props.gameDb.currentRound &&
+            <Button
+              classes="m-2"
+              onClick={(e) => this.handleStartGameButton(e)}
+            >
+              Start game!
+            </Button>
+          }
         </div>
       </div>
     )
