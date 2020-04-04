@@ -61,7 +61,7 @@ class App extends Component {
     const renderUser = () => <Player key={this.props.user.username} user={this.props.user}  />
 
     // Render other players
-    const renderPlayers = this.props.gameDb.players.map(player => {
+    const renderPlayers = () => this.props.gameDb.players.map(player => {
       if (player.username !== this.props.user.username) {
         return (
           <Player key={player.username} user={player} />
@@ -70,6 +70,32 @@ class App extends Component {
       return false
     })
 
+    // Render Stock
+    const renderStock = () => {
+      return (
+        <div className="flex items-center justify-center my-2">
+          Stock: {
+            renderCards(
+              this.props.gameDb.stock, 'stock', this.handleCardClick
+            )
+          }
+        </div>
+      )
+    }
+
+    // Render discard pile
+    const renderDiscardPile = () => {
+      return (
+        <div className="inline-flex items-center justify-center my-2">
+          Discard pile: {
+            renderCards(
+              this.props.gameDb.discard, 'discard'
+            )
+          }
+        </div>
+      )
+    }
+
     return (
       <div style={{ textAlign: "center" }}>
         <div className="inline-flex items-center">
@@ -77,13 +103,13 @@ class App extends Component {
         </div>
         <hr />
         <div>
-          <span>Other players:</span><span>{renderPlayers}</span>
         </div>
         <div className="inline-flex items-center my-2">
           Discard pile: {renderCards(this.props.gameDb.discard)}
         </div>
         <div>
           Number of connected players: {this.props.gameDb.players.length}
+          <span>Players:</span><span>{this.props.gameDb.players.length}</span>
         </div>
         <div>
           <Button
@@ -92,7 +118,10 @@ class App extends Component {
           >
             Start game!
           </Button>
+          <span>Other players:</span><span>{renderPlayers()}</span>
         </div>
+        {renderStock()}
+        {renderDiscardPile()}
         <div>
           <Button
             classes="m-2"
