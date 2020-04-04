@@ -104,6 +104,7 @@ function reducer(state = initialState, action) {
           ...state.user,
           id: action.id,
           username: action.username,
+          isOnline: action.isOnline,
           hand: action.hand
         }
       }

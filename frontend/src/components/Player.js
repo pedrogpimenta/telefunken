@@ -14,8 +14,13 @@ function Player(props) {
     }
   }
 
+  const isPlayerOnline = props.user.isOnline
+  const onlineClasses = "inline-flex items-center my-2"
+  const offlineClasses = `${onlineClasses} opacity-75`
+  const styles = isPlayerOnline ? onlineClasses : offlineClasses
+
   return (
-    <div className="inline-flex items-center my-2">
+    <div className={styles}>
       <span>
         {props.user.username}
       </span>

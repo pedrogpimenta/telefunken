@@ -199,7 +199,7 @@ game.on('connection', function(socket) {
     console.log('user:', username, 'login to:', gameId)
 
     // Set player
-    dbTools.setGameDb(thisGameId, {player: {username: username, socketId: socket.id}})
+    dbTools.setGameDb(thisGameId, {player: {username: username, socketId: socket.id, isOnline: true}})
     thisGameDb = dbTools.getGameDb(thisGameId)
 
     // Send saved user info

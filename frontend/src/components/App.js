@@ -44,6 +44,7 @@ class App extends Component {
           type: "UPDATE_USER_INFO",
           username: userInfo.username,
           id: userInfo.id,
+          isOnline: userInfo.isOnline,
           hand: userInfo.hand
         })
       }
