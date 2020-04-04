@@ -8,10 +8,9 @@ const initialGameDb = {
   stock: [],
   discard: [],
   totalRounds: 6,
-  currentRound: 1,
-  direction: '',
-  startingPlayer: '',
-  currentPlayerTurn: '',
+  currentRound: 0,
+  currentPlayer: '',
+  direction: 'clockwise',
   table: [],
   players: []
 }
