@@ -83,6 +83,13 @@ const initNewGame = function(gameId) {
       }
     })
   }
+
+  // assign first player randomly
+  let newPlayersArray = tools.shuffle(thisGameDb.players)
+  dbTools.setGameDb(gameId, {
+    currentPlayer: newPlayersArray[0].username,
+    currentRound: thisGameDb.currentRound + 1
+  })
 }
 
 
