@@ -147,7 +147,7 @@ const sendUserInfo = function(gameId, gameDb, username) {
   }
 }
 
-// HELPER: send user info to all users
+// HELPER: send user info to each user
 const sendEachUserInfo = function(gameId, gameDb, username) {
   for (i in gameDb.players) {
     game.to(gameDb.players[i].socketId).emit('updateUserInfo', gameDb.players[i])
@@ -203,11 +203,7 @@ game.on('connection', function(socket) {
     thisGameDb = dbTools.getGameDb(thisGameId)
 
     // Send saved user info
-    for (i in thisGameDb.players) {
-      if (thisGameDb.players[i].username === username) {
-        game.to(thisGameId).emit('updateUserInfo', thisGameDb.players[i])
-      }
-    }
+    sendUserInfo(gameId, thisGameDb, username)
 
     // Send connected users info
     //console.log('thisGameDb.players:', thisGameDb.players)
