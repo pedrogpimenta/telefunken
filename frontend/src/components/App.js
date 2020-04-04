@@ -22,6 +22,11 @@ class App extends Component {
     }
   }
 
+  handleCardClick(cardValue, cardSuit) {
+    console.log('madafaka:', cardValue, cardSuit)
+    //this.socket.emit('card use', this.props.gameId, this.props.user.username, card)
+  }
+
   componentDidMount() {
     // Set gameID from path
     const gamePath = window.location.pathname.split('/')[2]
@@ -103,21 +108,9 @@ class App extends Component {
         </div>
         <hr />
         <div>
-        </div>
-        <div className="inline-flex items-center my-2">
-          Discard pile: {renderCards(this.props.gameDb.discard)}
-        </div>
-        <div>
-          Number of connected players: {this.props.gameDb.players.length}
           <span>Players:</span><span>{this.props.gameDb.players.length}</span>
         </div>
         <div>
-          <Button
-            classes="m-2"
-            onClick={(e) => this.handleStartGameButton(e)}
-          >
-            Start game!
-          </Button>
           <span>Other players:</span><span>{renderPlayers()}</span>
         </div>
         {renderStock()}

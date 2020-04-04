@@ -1,8 +1,8 @@
 import React from "react"
 
 function PlayingCard(props) {
-  const isCardValueHidden = () => {
-    if (!props.value) {
+  const isCardHidden = () => {
+    if (!props.value || !props.suit) {
       return true
     }
 
@@ -10,9 +10,7 @@ function PlayingCard(props) {
   }
 
   const isRedSuit = () => {
-    console.log('suit:', props.suit)
     if (props.suit === 'hearts' || props.suit === 'diamonds') {
-      console.log('suit2:', props.suit)
       return true
     }
 
@@ -29,22 +27,22 @@ function PlayingCard(props) {
         return '♣️'
       case 'hearts':
         return '♥️'
+      default:
+        return null
     }
-
-    return null
   }
 
   const cardColour = isRedSuit() ? 'text-red-600' : 'text-black'
 
-  const cardFrontStyles = `inline-flex flex-col items-center justify-around leading-none border-2 border-solid border-gray-400 ${cardColour} rounded px-2 py-1 mx-1 w-8 h-12`
-  const cardBackStyles = `${cardFrontStyles} bg-gray-300`
-  const classes = isCardValueHidden() ? cardBackStyles : cardFrontStyles
+  const cardFrontClasses = `inline-flex flex-col flex-shrink-0 items-center justify-around leading-none border-2 border-solid border-gray-400 ${cardColour} rounded px-2 py-1 mx-1 w-8 h-12`
+  const cardBackClasses = `${cardFrontClasses} bg-gray-300`
+  const style = isCardHidden() ? cardBackClasses : cardFrontClasses
 
   return (
-    <span className={classes}>
+    <div className={style} onClick={(e) => props.onClick(props.value, 'bost')}>
       <span>{props.value}</span>
       <span>{renderSuit()}</span>
-    </span>
+    </div>
   )
 }
 
