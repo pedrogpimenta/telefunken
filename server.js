@@ -157,12 +157,18 @@ const sendEachUserInfo = function(gameId, gameDb, username) {
 const sendGameInfo = function(gameId, gameDb) {
   let thisGamePublicDb = gameDb
 
+  // hide first 2 discard pile cards value
   if (thisGamePublicDb.discard.length > 0) {
     thisGamePublicDb.discard[0].value = ''
     thisGamePublicDb.discard[0].suit = ''
     thisGamePublicDb.discard[1].value = ''
     thisGamePublicDb.discard[1].suit = ''
   }
+
+  // Hide stock cards value
+  thisGamePublicDb.stock = gameDb.stock.length
+
+  // Hide players hands
   for (i in thisGamePublicDb.players) {
     thisGamePublicDb.players[i].hand = []
   }
