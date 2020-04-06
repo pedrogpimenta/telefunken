@@ -6,11 +6,18 @@ import io from 'socket.io-client'
 
 import renderCards from '../renderCards'
 
-import Player from './Player'
 import Button from './Button'
+import Player from './Player'
+import RenderPlayers from './RenderPlayers'
 
 // Making the App component
 class App extends Component {
+  constructor () {
+    super()
+
+    this.handleCardClick = this.handleCardClick.bind(this)
+  }
+
   handleStartGameButton() {
     this.socket.emit('start game', this.props.gameId, this.props.user.username)
   }
@@ -22,9 +29,58 @@ class App extends Component {
     }
   }
 
-  handleCardClick(cardValue, cardSuit) {
-    console.log('madafaka:', cardValue, cardSuit)
-    //this.socket.emit('card use', this.props.gameId, this.props.user.username, card)
+  handleCardClick(cardType, card) {
+    if (this.props.user.username !== this.props.gameDb.currentPlayer) {return false}
+
+    console.log('cardType:', cardType)
+
+    if (cardType === 'user') {
+      console.log('card.id:', card.id)
+
+      let thisUserHand = this.props.user.hand
+
+      for (let i in thisUserHand) {
+        if (thisUserHand[i].id === card.id) {
+          thisUserHand[i].selected = !thisUserHand[i].selected
+        }
+      }
+
+      this.props.dispatch({
+        type: "UPDATE_USER_INFO",
+        id: this.props.user.id,
+        username: this.props.user.username,
+        isOnline: this.props.user.isOnline,
+        hand: thisUserHand
+      })
+
+    } else if (cardType === 'stock') {
+
+      if (this.props.gameDb.currentPlayerHasGrabbedCard) {
+        alert('You have already grabbed a card this round')
+      } else {
+        this.socket.emit('card from stock to user', this.props.gameId, this.props.user.username)
+      }
+
+    }
+
+
+  }
+
+  handleSendCardToDiscardButton() {
+    const thisUserHand = this.props.user.hand
+    let selectedCards = []
+    for (let i in thisUserHand) {
+      if (thisUserHand[i].selected) {
+        selectedCards.push(thisUserHand[i])
+      }
+    }
+
+    if (selectedCards.length === 1) {
+      this.socket.emit('card from user to discard', this.props.gameId, this.props.user.username, selectedCards[0])
+    } else {
+      alert('You can only send one card to the discard pile')
+    }
+
   }
 
   componentDidMount() {
@@ -63,17 +119,14 @@ class App extends Component {
 
   render() {
     // Render user info
-    const renderUser = () => <Player key={this.props.user.username} user={this.props.user}  />
-
-    // Render other players
-    const renderPlayers = () => this.props.gameDb.players.map(player => {
-      if (player.username !== this.props.user.username) {
-        return (
-          <Player key={player.username} user={player} />
-        )
-      }
-      return false
-    })
+    const renderPlayer = () => (
+      <Player
+        key={this.props.user.username}
+        user={this.props.user}
+        handleCardClick={this.handleCardClick}
+        currentPlayer={this.props.gameDb.currentPlayer}
+      />
+    )
 
     // Render Stock
     const renderStock = () => {
@@ -90,31 +143,58 @@ class App extends Component {
 
     // Render discard pile
     const renderDiscardPile = () => {
+      let thisUserHand = this.props.user.hand
+
+      const isSomeCardSelected = () => {
+        let someCardIsSelected = []
+
+        for (let i in thisUserHand) {
+          if (thisUserHand[i].selected) {
+            console.log('yeah')
+            someCardIsSelected.push(i)
+          }
+        }
+
+        return someCardIsSelected.length === 1
+      }
+
+      const renderSendCardToDiscardButton = () => {
+        if (isSomeCardSelected()) {
+          return (
+            <Button
+              classes="m-2"
+              onClick={(e) => this.handleSendCardToDiscardButton(e)}
+            >
+              Send to Discard
+            </Button>
+          )
+        }
+      }
+
       return (
         <div className="inline-flex items-center justify-center my-2">
           Discard pile: {
             renderCards(
-              this.props.gameDb.discard, 'discard'
+              this.props.gameDb.discard, 'discard', this.handleCardClick
             )
           }
+          {renderSendCardToDiscardButton()}
         </div>
       )
     }
 
     return (
-      <div style={{ textAlign: "center" }}>
-        <div className="inline-flex items-center">
-          <span>You: {renderUser()}</span>
-        </div>
-        <hr />
-        <div>
-          <span>Players:</span><span>{this.props.gameDb.players.length}</span>
+      <div className="w-screen h-screen bg-gray-100 grid grid-cols-1 grid-rows-3">
+        <div className="row-start-3 row-end-4 inline-flex flex-col items-center">
+          {renderPlayer()}
         </div>
         <div>
-          <span>Other players:</span><span>{renderPlayers()}</span>
+          <div>
+            <RenderPlayers players={this.props.gameDb.players} />
+          </div>
+          {renderStock()}
+          {renderDiscardPile()}
         </div>
-        {renderStock()}
-        {renderDiscardPile()}
         <div>
           {!this.props.gameDb.currentRound &&
             <Button

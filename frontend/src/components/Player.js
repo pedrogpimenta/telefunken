@@ -14,7 +14,8 @@ function Player(props) {
     }
   }
 
-  const isPlayerOnline = props.user.isOnline
+  const isCurrentPlayer = props.currentPlayer === props.user.username
+  const isPlayerOnline = !!props.user.isOnline
   const onlineClasses = "inline-flex items-center my-2"
   const offlineClasses = `${onlineClasses} opacity-75`
   const styles = isPlayerOnline ? onlineClasses : offlineClasses
@@ -22,10 +23,15 @@ function Player(props) {
   return (
     <div className={styles}>
       <span>
-        {props.user.username}
+        {isCurrentPlayer &&
+          <strong>
+            {props.user.username}
+          </strong>
+        }
+        {!isCurrentPlayer && props.user.username}
       </span>
       <span>
-        {renderCards(props.user.hand)}
+        {renderCards(props.user.hand, 'user', props.handleCardClick)}
       </span>
     </div>
   )

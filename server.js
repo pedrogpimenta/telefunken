@@ -56,8 +56,6 @@ const NOTFORUSE_gameDb = {
 const initNewGame = function(gameId) {
   let thisGameDb = dbTools.getGameDb(gameId)
   
-  // assign first player
-
   // set game deck and stock
   dbTools.setGameDb(gameId, {stock: tools.getDeck(2)})
   thisGameDb = dbTools.getGameDb(gameId)
@@ -92,8 +90,22 @@ const initNewGame = function(gameId) {
   })
 }
 
+const setNewTurn = (gameId, newPlayer) => {
+  let thisGameDb = dbTools.getGameDb(gameId)
+  const currentPlayer = thisGameDb.currentPlayer
 
+  const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
 
+  dbTools.setGameDb(gameId, {
+    currentPlayer: nextPlayer,
+    currentPlayerHasGrabbedCard: false
+  })
+}
+
+const setNewRound = (gameId) => {
+  let thisGameDb = dbTools.getGameDb(gameId)
+  const thisTurn = thisGameDb.currentRound
+}
 
 
 
@@ -168,9 +180,12 @@ const sendGameInfo = function(gameId, gameDb) {
   // Hide stock cards value
   thisGamePublicDb.stock = gameDb.stock.length
 
-  // Hide players hands
+  // Hide players hand cards
   for (i in thisGamePublicDb.players) {
-    thisGamePublicDb.players[i].hand = []
+    for (h in thisGamePublicDb.players[i].hand) {
+      thisGamePublicDb.players[i].hand[h].value = ''
+      thisGamePublicDb.players[i].hand[h].suit = ''
+    }
   }
 
   game.to(gameId).emit('updateGame', thisGamePublicDb)
@@ -219,17 +234,80 @@ game.on('connection', function(socket) {
 
 
 
+
+
   // start game
   socket.on('start game', function(gameId, username) {
-    //thisGameDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
     initNewGame(thisGameId)
 
-    let thisGameDb = dbTools.getGameDb(gameId)
+    const thisGameDb = dbTools.getGameDb(gameId)
 
     sendEachUserInfo(gameId, thisGameDb)
     sendGameInfo(gameId, thisGameDb)
   })
 
+  socket.on('card from stock to user', function(gameId, username) {
+    let thisGameDb = dbTools.getGameDb(gameId)
+
+    if (thisGameDb.currentPlayerHasGrabbedCard) {return false}
+
+    const result = dbTools.getCardsFromStock(gameId, 1)
+
+    const nextPlayerIndex = dbTools.nextPlayerIndex(gameId)
+    const nextPlayer = thisGameDb.players[nextPlayerIndex].username
+
+    dbTools.setGameDb(gameId, {
+      stock: result.newStock,
+      currentPlayerHasGrabbedCard: true,
+      player: {
+        username: username,
+        hand: result.cards
+      }
+    })
+
+    thisGameDb = dbTools.getGameDb(gameId)
+
+    sendUserInfo(gameId, thisGameDb, username)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+  socket.on('card from user to discard', function(gameId, username, card) {
+    let thisGameDb = dbTools.getGameDb(gameId)
+
+    let newPlayerHand = []
+    let newDiscard = thisGameDb.discard
+
+    for (let i in thisGameDb.players) {
+      if (thisGameDb.players[i].username === username) {
+        for (let h in thisGameDb.players[i].hand) {
+          if (thisGameDb.players[i].hand[h].id === card.id) {
+            console.log('its a match')
+            //newPlayerHand = thisGameDb.players[i].hand.splice(h, 1)
+          } else {
+            newPlayerHand.push(thisGameDb.players[i].hand[h])
+          }
+        }
+      }
+    }
+
+    console.log('card:', card)
+    newDiscard.push(card)
+
+    dbTools.setGameDb(gameId, {
+      discard: newDiscard,
+      player: {
+        username: username,
+        hand: newPlayerHand
+      }
+    })
+
+
+    setNewTurn(gameId, username)
+    thisGameDb = dbTools.getGameDb(gameId)
+
+    sendUserInfo(gameId, thisGameDb, username)
+    sendGameInfo(gameId, thisGameDb)
+  })
 
 
 

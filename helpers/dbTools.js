@@ -9,7 +9,9 @@ const initialGameDb = {
   discard: [],
   totalRounds: 6,
   currentRound: 0,
+  currentTurn: 0,
   currentPlayer: '',
+  currentPlayerHasGrabbedCard: false,
   direction: 'clockwise',
   table: [],
   players: []
@@ -28,6 +30,7 @@ const initialPlayerInfo = {
 
 const initialPlayerEventsInfo = {
   roundNumber: 1, // number of the round
+  hasGrabbedCard: false,
   buys: 0, // how many buys in this round
   points: 0 // if 0, player cut in this round
 }
@@ -98,8 +101,14 @@ module.exports = {
                     if (key === currentDbPlayerKey) {
                       //console.log('|| WHAT', key, currentDbPlayerKey, gameDb.player[key])
                       if (key === 'hand') {
-                        for (cardIndex in gameDb.player[key]) {
-                          currentGameDb.players[i]['hand'].push(gameDb.player[key][cardIndex])
+                        console.log('currenthand:', currentGameDb.players[i]['hand'].length)
+                        console.log('hand:', gameDb.player[key].length)
+                        if (gameDb.player[key].length > 1) {
+                          currentGameDb.players[i]['hand'] = gameDb.player[key]
+                        } else {
+                          for (cardIndex in gameDb.player[key]) {
+                            currentGameDb.players[i]['hand'].push(gameDb.player[key][cardIndex])
+                          }
                         }
                       } else {
                         currentGameDb.players[i][key] = gameDb.player[key]
@@ -170,6 +179,7 @@ module.exports = {
     const prevStock = this.getGameDb(gameId).stock
     let nextStock = []
     let cards = []
+
     for (i in prevStock) {
       nextStock.push(prevStock[i])
 
@@ -182,5 +192,20 @@ module.exports = {
 
     return {newStock: nextStock, cards}
   },
+
+  nextPlayerIndex: function(gameId) {
+    const thisGameDb = this.getGameDb(gameId)
+
+    for (i in thisGameDb.players) {
+      console.log('i:', i)
+      if (thisGameDb.players[i].username === thisGameDb.currentPlayer) {
+        if ((parseInt(i) + 1) > (thisGameDb.players.length - 1)) {
+          return 0
+        } else {
+          return parseInt(i) + 1
+        }
+      }
+    }
+  }
 
 }

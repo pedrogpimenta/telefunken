@@ -1,13 +1,15 @@
 module.exports = {
-  makeDeck: function() {
+  makeDeck: function(n) {
     const suits = ['spades', 'diamonds', 'clubs', 'hearts'];
     const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
     const deck = [];
-    for(var i = 0; i < suits.length; i++) {
-      for(var x = 0; x < values.length; x++) {
-        var card = {value: values[x], suit: suits[i]};
-        deck.push(card);
+    for(var a = 0; a < n; a++) {
+      for(var i = 0; i < suits.length; i++) {
+        for(var x = 0; x < values.length; x++) {
+          var card = {value: values[x], suit: suits[i], id: this.guidGenerator()};
+          deck.push(card);
+        }
       }
     }
 
@@ -15,18 +17,8 @@ module.exports = {
   },
 
   getDeck: function(n) {
-    const numberOfDecks = n || 1
-    const baseDeck = this.makeDeck()
-    let newDeck = []
-    for (i = 0; i < numberOfDecks; i++) {
-      console.log('i:', i)
-      baseDeck.forEach((e) => {
-        e.id = this.guidGenerator()
-        newDeck.push(e)
-      })
-    }
-
-    const shuffledDeck = this.shuffle(newDeck)
+    const baseDeck = this.makeDeck(2)
+    const shuffledDeck = this.shuffle(baseDeck)
 
     return shuffledDeck
   },

@@ -6,7 +6,13 @@ function renderCards(cards, type, handleCardClick) {
   }
 
   const handleStockCardClick = (e) => {
-    handleCardClick(e)
+    console.log('click stock:', e)
+    handleCardClick('stock', e)
+  }
+
+  const handleUserCardClick = (e) => {
+    console.log('click user:', e)
+    handleCardClick('user', e)
   }
 
   switch(type) {
@@ -14,6 +20,7 @@ function renderCards(cards, type, handleCardClick) {
       if (!!cards) {
         return cards.map(card => <PlayingCard
           key={card.id}
+          id={card.id}
           value={card.value}
           suit={card.suit}
           onClick={(e) => console.log('discard card')}
@@ -25,13 +32,24 @@ function renderCards(cards, type, handleCardClick) {
           value={cards}
           onClick={(e) => handleStockCardClick(e)}
         />
+    case 'other players':
+      return cards.map((card, i) => <PlayingCard
+        key={card.id}
+        id={card.id}
+        value={card.value}
+        suit={card.suit}
+        styles={{marginLeft: -16 + 'px'}}
+        onClick={(e) => null}
+      />)
     default:
       if (!!cards) {
         return cards.map(card => <PlayingCard
           key={card.id}
+          id={card.id}
           value={card.value}
           suit={card.suit}
-          onClick={(e) => console.log('user card')}
+          selected={card.selected}
+          onClick={(e) => handleUserCardClick(e)}
         />)
       }
       return null
