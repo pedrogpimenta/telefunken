@@ -10914,6 +10914,22 @@ video {
   transition-duration: 1000ms;
 }
 
+.showAllCards > div + div ~ div {
+  margin-left: -2.5rem;
+}
+
+.showOnlyTwoCards > div + div ~ div {
+  margin-left: -3rem;
+}
+
+.hasHiddenCards > div:nth-child(n + 1) {
+  margin-left: -3rem;
+}
+
+.hasHiddenCards > div:nth-child(n + 4) {
+  margin-left: -3.5rem;
+}
+
 @media (min-width: 640px){
   .sm\:sr-only{
     position: absolute;
@@ -21219,6 +21235,22 @@ video {
 
   .sm\:duration-1000{
     transition-duration: 1000ms;
+  }
+
+  .sm\:showAllCards > div + div ~ div {
+    margin-left: -2.5rem;
+  }
+
+  .sm\:showOnlyTwoCards > div + div ~ div {
+    margin-left: -3rem;
+  }
+
+  .sm\:hasHiddenCards > div:nth-child(n + 1) {
+    margin-left: -3rem;
+  }
+
+  .sm\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
   }
 }
 
@@ -31528,6 +31560,22 @@ video {
   .md\:duration-1000{
     transition-duration: 1000ms;
   }
+
+  .md\:showAllCards > div + div ~ div {
+    margin-left: -2.5rem;
+  }
+
+  .md\:showOnlyTwoCards > div + div ~ div {
+    margin-left: -3rem;
+  }
+
+  .md\:hasHiddenCards > div:nth-child(n + 1) {
+    margin-left: -3rem;
+  }
+
+  .md\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
 }
 
 @media (min-width: 1024px){
@@ -41836,6 +41884,22 @@ video {
   .lg\:duration-1000{
     transition-duration: 1000ms;
   }
+
+  .lg\:showAllCards > div + div ~ div {
+    margin-left: -2.5rem;
+  }
+
+  .lg\:showOnlyTwoCards > div + div ~ div {
+    margin-left: -3rem;
+  }
+
+  .lg\:hasHiddenCards > div:nth-child(n + 1) {
+    margin-left: -3rem;
+  }
+
+  .lg\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
 }
 
 @media (min-width: 1280px){
@@ -52143,5 +52207,21 @@ video {
 
   .xl\:duration-1000{
     transition-duration: 1000ms;
+  }
+
+  .xl\:showAllCards > div + div ~ div {
+    margin-left: -2.5rem;
+  }
+
+  .xl\:showOnlyTwoCards > div + div ~ div {
+    margin-left: -3rem;
+  }
+
+  .xl\:hasHiddenCards > div:nth-child(n + 1) {
+    margin-left: -3rem;
+  }
+
+  .xl\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
   }
 }

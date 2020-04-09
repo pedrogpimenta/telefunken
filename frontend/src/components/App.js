@@ -4,10 +4,11 @@ import { connect } from 'react-redux'
 import { withRouter } from 'react-router-dom'
 import io from 'socket.io-client'
 
-import renderCards from '../renderCards'
+import RenderCards from './RenderCards'
 
 import Button from './Button'
 import Player from './Player'
+import Table from './Table'
 import RenderPlayers from './RenderPlayers'
 
 // Making the App component
@@ -17,7 +18,6 @@ class App extends Component {
 
     this.handleCardClick = this.handleCardClick.bind(this)
   }
-
   handleStartGameButton() {
     this.socket.emit('start game', this.props.gameId, this.props.user.username)
   }
@@ -32,34 +32,40 @@ class App extends Component {
   handleCardClick(cardType, card) {
     if (this.props.user.username !== this.props.gameDb.currentPlayer) {return false}
 
-    console.log('cardType:', cardType)
-
     if (cardType === 'user') {
-      console.log('card.id:', card.id)
-
-      let thisUserHand = this.props.user.hand
-
-      for (let i in thisUserHand) {
-        if (thisUserHand[i].id === card.id) {
-          thisUserHand[i].selected = !thisUserHand[i].selected
-        }
+      if (!this.props.gameDb.currentPlayerHasGrabbedCard) {
+        alert('You have to grab a card first')
+        return false
       }
 
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        id: this.props.user.id,
-        username: this.props.user.username,
-        isOnline: this.props.user.isOnline,
-        hand: thisUserHand
-      })
+      let thisUserHand = this.props.user.hand.slice()
+
+      if (this.props.isTableActive) {
+
+      } else {
+        for (let i in thisUserHand) {
+          if (thisUserHand[i].id === card.id) {
+            thisUserHand[i].selected = !thisUserHand[i].selected
+          }
+        }
+
+        this.props.dispatch({
+          type: "UPDATE_USER_INFO",
+          id: this.props.user.id,
+          username: this.props.user.username,
+          isOnline: this.props.user.isOnline,
+          hand: thisUserHand
+        })
+      }
 
     } else if (cardType === 'stock') {
 
       if (this.props.gameDb.currentPlayerHasGrabbedCard) {
         alert('You have already grabbed a card this round')
-      } else {
-        this.socket.emit('card from stock to user', this.props.gameId, this.props.user.username)
+        return false
       }
+
+      this.socket.emit('card from stock to user', this.props.gameId, this.props.user.username)
 
     }
 
@@ -80,7 +86,33 @@ class App extends Component {
     } else {
       alert('You can only send one card to the discard pile')
     }
+  }
 
+  handleSendCardToTableButton() {
+    this.props.dispatch({ type: 'USER_IS_SENDING_TO_TABLE' })
+
+
+
+
+    const thisUserHand = this.props.user.hand
+    let selectedCards = []
+    for (let i in thisUserHand) {
+      if (thisUserHand[i].selected) {
+        selectedCards.push(thisUserHand[i])
+      }
+    }
+
+
+
+    this.socket.emit('card from user to table', this.props.gameId, this.props.user.username, selectedCards)
+  }
+
+  handleHandUpdate() {
+    this.socket.emit('update user hand', this.props.gameId, this.props.user.username, this.props.user.hand)
+  }
+
+  handleTableUpdate() {
+    this.socket.emit('update table', this.props.gameId, this.props.gameDb.table)
   }
 
   componentDidMount() {
@@ -115,6 +147,7 @@ class App extends Component {
     this.socket.on('updateGame', (gameDb) => {
       this.props.dispatch({ type: "UPDATE_GAME", value: gameDb })
     })
+
   }
 
   render() {
@@ -124,6 +157,7 @@ class App extends Component {
         key={this.props.user.username}
         user={this.props.user}
         handleCardClick={this.handleCardClick}
+        handleHandUpdate={(e) => this.handleHandUpdate(e)}
         currentPlayer={this.props.gameDb.currentPlayer}
       />
     )
@@ -131,71 +165,72 @@ class App extends Component {
     // Render Stock
     const renderStock = () => {
       return (
-        <div className="flex items-center justify-center my-2">
-          Stock: {
-            renderCards(
-              this.props.gameDb.stock, 'stock', this.handleCardClick
-            )
-          }
+        <div className="inline-flex items-center justify-center m-2">
+          <RenderCards cards={this.props.gameDb.stock} location='stock' onClick={this.handleCardClick} />
         </div>
       )
+    }
+
+    const isSomeCardSelected = () => {
+      let someCardIsSelected = []
+
+      for (let i in this.props.user.hand) {
+        if (this.props.user.hand[i].selected) {
+          someCardIsSelected.push(i)
+        }
+      }
+
+      return someCardIsSelected.length === 1
     }
 
     // Render discard pile
     const renderDiscardPile = () => {
-      let thisUserHand = this.props.user.hand
+      let hasHiddenCards = null
 
-      const isSomeCardSelected = () => {
-        let someCardIsSelected = []
-
-        for (let i in thisUserHand) {
-          if (thisUserHand[i].selected) {
-            console.log('yeah')
-            someCardIsSelected.push(i)
-          }
-        }
-
-        return someCardIsSelected.length === 1
+      for (let i in this.props.gameDb.discard) {
+        hasHiddenCards = (hasHiddenCards === null || this.props.gameDb.discard[i].value) ? 'hasHiddenCards' : null
       }
 
-      const renderSendCardToDiscardButton = () => {
-        if (isSomeCardSelected()) {
-          return (
-            <Button
-              classes="m-2"
-              onClick={(e) => this.handleSendCardToDiscardButton(e)}
-            >
-              Send to Discard
-            </Button>
-          )
-        }
-      }
+      const classes = `inline-flex ${hasHiddenCards}`
 
       return (
-        <div className="inline-flex items-center justify-center my-2">
-          Discard pile: {
-            renderCards(
-              this.props.gameDb.discard, 'discard', this.handleCardClick
-            )
-          }
-          {renderSendCardToDiscardButton()}
+        <div className={classes}>
+          <RenderCards cards={this.props.gameDb.discard} location='discard' onClick={this.handleCardClick} />
         </div>
       )
     }
 
+    const renderSendCardToDiscardButton = () => {
+      let thisButtonClasses = 'mx-2'
+      if (!isSomeCardSelected()) {
+        thisButtonClasses = 'mx-2 opacity-50 cursor-not-allowed'
+      }
+
+      return (
+        <Button
+          classes={thisButtonClasses}
+          onClick={(e) => this.handleSendCardToDiscardButton(e)}
+        >
+          Send to Discard
+        </Button>
+      )
+    }
+
     return (
-      <div className="w-screen h-screen bg-gray-100 grid grid-cols-1 grid-rows-3">
-        <div className="row-start-3 row-end-4 inline-flex flex-col items-center">
-          {renderPlayer()}
-        </div>
-        <div>
-          <div>
+      <div className="w-screen h-screen overflow-y-auto overflow-x-hidden bg-gray-100 flex flex-col justify-stretch">
+        <div className="inline-flex items-end justify-between border-b border-solid border-gray-300">
+          <div className="inline-flex flex-grow">
             <RenderPlayers players={this.props.gameDb.players} />
           </div>
-          {renderStock()}
           {renderDiscardPile()}
+          {renderStock()}
         </div>
-        <div>
+        <div className="inline-flex flex-col flex-grow">
+          <Table 
+            onClick={(e) => this.handleCardClick(e)}
+            handleTableUpdate={(e) => this.handleTableUpdate(e)}
+            handleHandUpdate={(e) => this.handleHandUpdate(e)}
+          />
           {!this.props.gameDb.currentRound &&
             <Button
               classes="m-2"
@@ -204,6 +239,12 @@ class App extends Component {
               Start game!
             </Button>
           }
+        </div>
+        <div className="row-start-3 row-end-4 inline-flex flex-col items-center">
+          <div className="inline-flex flex-row">
+            {renderSendCardToDiscardButton()}
+          </div>
+          {renderPlayer()}
         </div>
       </div>
     )
@@ -217,7 +258,8 @@ function mapStateToProps(state) {
     gameId: state.gameId,
     gameDb: state.gameDb,
     connectedUsers: state.connectedUsers,
-    user: state.user
+    user: state.user,
+    isTableActive: state.isTableActive
   }
 }
 

@@ -290,7 +290,6 @@ game.on('connection', function(socket) {
       }
     }
 
-    console.log('card:', card)
     newDiscard.push(card)
 
     dbTools.setGameDb(gameId, {
@@ -309,7 +308,40 @@ game.on('connection', function(socket) {
     sendGameInfo(gameId, thisGameDb)
   })
 
+  socket.on('update user hand', function(gameId, username, hand) {
+    let thisGameDb = dbTools.getGameDb(gameId)
+    let numberOfMatches = 0
+    for (let p in thisGameDb.players) {
+      if (thisGameDb.players[p].username === username) {
+        for (let card in hand) {
+          for (let serverCard in thisGameDb.players[p].hand) {
+            if (hand[card].id === thisGameDb.players[p].hand[serverCard].id) {
+              numberOfMatches += 1
+            } 
+          }
+        }
+      }
+    }
+    
+    const handLength = hand.length
+    if (handLength === numberOfMatches) {
+      dbTools.setGameDb(gameId, {
+        player: {
+          username: username,
+          hand: hand
+        }
+      })
+    }
+  })
 
+  socket.on('update table', function(gameId, table) {
+    dbTools.setGameDb(gameId, {
+      table: table
+    })
+    
+    thisGameDb = dbTools.getGameDb(gameId)
+    sendGameInfo(gameId, thisGameDb)
+  })
 
 
 

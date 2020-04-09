@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
-import renderCards from '../renderCards'
+import RenderCards from './RenderCards'
 
 class RenderPlayers extends Component {
   render() {
@@ -8,16 +8,15 @@ class RenderPlayers extends Component {
       return this.props.gameDb.currentPlayer === playerUsername
     }
     const isPlayerOnline = !!this.props.user.isOnline
-    const onlineClasses = "inline-flex flex-col items-start my-2"
+    const onlineClasses = "inline-flex flex-col items-start mx-2 sm:mx-4 my-2"
     const offlineClasses = `${onlineClasses} opacity-75`
     const styles = isPlayerOnline ? onlineClasses : offlineClasses
 
     const renderPlayers = () => this.props.gameDb.players.map(player => {
-      console.log(player.username, 'is current player:', isCurrentPlayer(player.username))
       if (player.username !== this.props.user.username) {
         return (
-          <div className={styles}>
-            <span>
+          <div className={styles} key={player.id}>
+            <span className='mb-1'>
               {isCurrentPlayer(player.username) &&
                 <strong>
                   {player.username}
@@ -25,8 +24,8 @@ class RenderPlayers extends Component {
               }
               {!isCurrentPlayer(player.username) && player.username}
             </span>
-            <span className="ml-3">
-              {renderCards(player.hand, 'other players')}
+            <span className="inline-flex ml-10 showOnlyTwoCards sm:showAllCards">
+              <RenderCards key={77} cards={player.hand} location='other players' />
             </span>
           </div>
         )
@@ -37,11 +36,6 @@ class RenderPlayers extends Component {
 
     return renderPlayers()
   }
-
-
-
-
-
 }
 
 function mapStateToProps(state) {

@@ -5,3 +5,21 @@
 @tailwind components;
 
 @tailwind utilities;
+
+@responsive {
+  .showAllCards > div + div ~ div {
+    @apply -ml-10;
+  }
+
+  .showOnlyTwoCards > div + div ~ div {
+    @apply -ml-12;
+  }
+
+  .hasHiddenCards > div:nth-child(n + 1) {
+    @apply -ml-12;
+  }
+
+  .hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
+}
