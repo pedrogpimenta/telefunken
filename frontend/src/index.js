@@ -23,7 +23,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux'
 
 const initialState = {
-  endpoint: 'localhost:4001/game',
+  endpoint: 'ef9dbac3.ngrok.io/game',
   gameId: '',
   connectedUsers: [],
   gameDb: {
@@ -61,7 +61,9 @@ const initialState = {
     username: '',
     cards: 0
   },
-  count: 10
+  userIsDragging: false,
+  savedCard: 'none',
+  savedGroup: 'none'
 }
 
 function reducer(state = initialState, action) {
@@ -102,12 +104,62 @@ function reducer(state = initialState, action) {
         ...state,
         user: {
           ...state.user,
-          id: action.id,
-          username: action.username,
-          isOnline: action.isOnline,
-          hand: action.hand
+          id: action.id || state.user.id,
+          username: action.username || state.user.username,
+          isOnline: action.isOnline || state.user.isOnline,
+          hand: action.hand || state.hand
         }
       }
+    case 'USER_IS_SENDING_TO_TABLE':
+      return {
+        ...state,
+        isTableActive: !state.isTableActive
+      }
+    case 'UPDATE_TABLE':
+      return {
+        ...state,
+        gameDb: {
+          ...state.gameDb,
+          table: action.table
+        }
+      }
+    case 'SAVE_DROPPED_CARD':
+      return {
+        ...state,
+        savedCard: action.card
+      }
+    case 'SAVE_GROUP_TO_DROP':
+      return {
+        ...state,
+        savedGroup: action.group
+      }
+
+
+
+
+
+    case 'SAVE_GROUP':
+      return {
+        ...state,
+        savedGroup: action.group
+      }
+    case 'SAVE_CARD':
+      return {
+        ...state,
+        savedCard: action.card
+      }
+    case 'USER_IS_DRAGGING':
+      return {
+        ...state,
+        userIsDragging: true
+      }
+    case 'USER_IS_NOT_DRAGGING':
+      return {
+        ...state,
+        userIsDragging: false
+      }
+
+
 
 
     default:

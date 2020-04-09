@@ -1,5 +1,5 @@
 import React from "react"
-import renderCards from '../renderCards'
+import RenderCards from './RenderCards'
 
 function Player(props) {
   const renderOnline = () => {
@@ -16,13 +16,13 @@ function Player(props) {
 
   const isCurrentPlayer = props.currentPlayer === props.user.username
   const isPlayerOnline = !!props.user.isOnline
-  const onlineClasses = "inline-flex items-center my-2"
-  const offlineClasses = `${onlineClasses} opacity-75`
+  const onlineClasses = "inline-flex flex-col items-start py-2"
+  const offlineClasses = `${onlineClasses} opacity-100`
   const styles = isPlayerOnline ? onlineClasses : offlineClasses
 
   return (
     <div className={styles}>
-      <span>
+      <span className="mx-2">
         {isCurrentPlayer &&
           <strong>
             {props.user.username}
@@ -31,7 +31,12 @@ function Player(props) {
         {!isCurrentPlayer && props.user.username}
       </span>
       <span>
-        {renderCards(props.user.hand, 'user', props.handleCardClick)}
+        <RenderCards
+          cards={props.user.hand}
+          location='user'
+          onClick={props.handleCardClick}
+          handleHandUpdate={props.handleHandUpdate}
+        />
       </span>
     </div>
   )
