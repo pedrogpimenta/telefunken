@@ -17,29 +17,34 @@ class Welcome extends Component {
 
   componentDidMount() {
     const username = !!localStorage.getItem('username') ? localStorage.getItem('username') : ''
-    this.setState({'username': username})
+    const gameId = !!localStorage.getItem('gameId') ? localStorage.getItem('gameId') : ''
+    this.setState({
+      'username': username,
+      'gameId': gameId
+    })
   }
 
   render() {
     const handleGoButton = (e) => {
       e.preventDefault()
-      const username = document.getElementById('welcome__input--username').value
-      const gameId = document.getElementById('welcome__input--gameId').value
+      const gameId = localStorage.getItem('gameId')
 
-      localStorage.setItem('username', username)
-      localStorage.setItem('gameId', gameId)
       this.props.history.push(`/game/${gameId}`)
     }
 
     const handleUsernameInputChange = () => {
       const username = document.getElementById('welcome__input--username').value
+      localStorage.setItem('username', username)
       this.setState({'username': username})
     }
 
     const handleGameIdInputChange = () => {
       const gameId = document.getElementById('welcome__input--gameId').value
+      localStorage.setItem('gameId', gameId)
       this.setState({'gameId': gameId})
     }
+
+    console.log('state.username:', this.state.username)
 
     return (
       <div style={{ textAlign: "center" }}>

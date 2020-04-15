@@ -8,160 +8,70 @@ class Table extends Component {
   constructor() {
     super()
 
-    this.handleTableDrop = this.handleTableDrop.bind(this)
-    this.handleTableEnter = this.handleTableEnter.bind(this)
-    this.handleTableLeave = this.handleTableLeave.bind(this)
-
-    //this.handleNewGroupEnter = this.handleNewGroupEnter.bind(this)
+    this.handleNewGroupDrop = this.handleNewGroupDrop.bind(this)
   }
+
+  // ------------------- 
+  // user actions
+  // ------------------- 
+
+  handleNewGroupDrop(e) {
+    const removedIndex = e.removedIndex
+    const addedIndex = e.addedIndex
+    const fromGroup = this.props.fromGroup
+    const card = this.props.savedCard
+
+    // stop if not for this group
+    if (removedIndex === null && addedIndex === null) { return false }
+    // stop if user hasn't grabbed card
+    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    // stop if user isn't current player
+    if (this.props.gameDb.currentPlayer !== this.props.user.username) { return false }
+
+    this.props.sendToServer('new group', {card})
+  }
+
+  // ------------------- 
+  // render functions
+  // ------------------- 
 
   renderTableGroups() {
     return this.props.gameDb.table.map((group, index) => (
       <RenderCards
-        key={index}
-        index={index}
-        cards={group}
+        key={group.id}
+        id={group.id}
+        cards={group.cards}
         location='table'
         onClick={this.props.onClick}
         handleHandUpdate={(e) => this.props.handleHandUpdate(e)}
         handleTableUpdate={(e) => this.props.handleTableUpdate(e)}
+        sendToServer={(action, content) => this.props.sendToServer(action, content)}
       />
     ))
   }
 
-  handleTableEnter() {
-    console.log('enter table')
-    this.props.dispatch({
-      type: "SAVE_GROUP_TO_DROP",
-      group: 'table'
-    }) 
-  }
-  
-  handleTableLeave() {
-    console.log('adio table:')
-    this.props.dispatch({
-      type: "SAVE_GROUP_TO_DROP",
-      group: null
-    })
-  }
-
-  handleTableDrop(dragInfo, dropZone) {
-    console.log('table dragInfo:', dragInfo)
-
-    if (this.props.currentPlayer !== this.props.user.username) { return false }
-    if (this.props.savedGroup !== 'table') { return false }
-
-    if (dragInfo.removedIndex === null && dragInfo.addedIndex !== null) {
-      let thisTable = this.props.gameDb.table.slice()
-      let thisUserHand = this.props.user.hand.slice()
-
-      for (let i in thisUserHand) {
-        if (thisUserHand[i].id === this.props.savedCard.id) {
-          thisUserHand.splice(i, 1)
-        }
-      }
-
-      thisTable.push([this.props.savedCard])
-
-      this.props.dispatch({
-        type: "UPDATE_TABLE",
-        table: thisTable
-      })
-
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        id: this.props.user.id,
-        username: this.props.user.username,
-        isOnline: this.props.user.isOnline,
-        hand: thisUserHand
-      })
-
-      this.props.dispatch({
-        type: "SAVE_GROUP_TO_DROP",
-        group: null
-      })
-
-      this.props.handleTableUpdate()
-    }
-
-  }
-
-
-
-
-
-
-
-  handleTableEnter() {
-    console.log('enter table')
-    this.props.dispatch({
-      type: "SAVE_GROUP",
-      group: 'table'
-    }) 
-  }
-
-  handleTableLeave() {
-    console.log('leave table')
-    this.props.dispatch({
-      type: "SAVE_GROUP",
-      group: 'none'
-    }) 
-  }
-
-
-
-
   render () {
-
-    const handleNewGroupDrop = (dragInfo) => {
-      const removedIndex = dragInfo.removedIndex
-      const addedIndex = dragInfo.addedIndex
-
-      if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
-      if (this.props.gameDb.currentPlayer !== this.props.user.username) { return false }
-      if (this.props.savedGroup !== 'table') { return false }
-
-      const draggedCard = this.props.savedCard
-      let thisTable = this.props.gameDb.table.slice()
-
-      // remove card from player's hand
-      let playerCards = this.props.user.hand.slice()
-      const cardIndex = playerCards.findIndex((card) => card.id === this.props.savedCard.id)
-      playerCards.splice(cardIndex, 1)
-
-      // save hand to state
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        username: this.props.user.username,
-        id: this.props.user.id,
-        hand: playerCards 
-      }) 
-      // save hand on server
-      this.props.handleHandUpdate()
-
-      thisTable.push([draggedCard])
-
-      this.props.dispatch({
-        type: "UPDATE_TABLE",
-        table: thisTable
-      })
-
-      this.props.dispatch({
-        type: "SAVE_GROUP",
-        group: 'none'
-      }) 
-
-      this.props.handleTableUpdate()
-    }
-
     return (
-      <div className="flex items-center justify-center w-full h-full">
-        {this.props.userIsDragging &&
-          <Container groupName='droppable' animationDuration={0} behaviour='drop-zone' onDragEnter={(e) => {this.handleTableEnter(e)}} onDragLeave={(e) => {this.handleTableLeave(e)}} onDrop={handleNewGroupDrop}>
-            <div className="border-2 border-solid border-gray-300 px-1 py-3 mx-2">New group</div>
-          </Container>
+      <div className="relative flex flex-col  sm:flex-row sm:flex-wrap items-start justify-center w-full h-full pt-4">
+        {this.props.gameDb.table && 
+          this.renderTableGroups()
         }
-        {this.props.gameDb.table && this.renderTableGroups()}
+        {/* Show if user is dragging, is current player, has grabbed card, card comes from player */}
+        {this.props.userIsDragging &&
+          (this.props.user.username === this.props.gameDb.currentPlayer) &&
+          (this.props.gameDb.currentPlayerHasGrabbedCard) &&
+          <div className="absolute flex items-stretch top-0 left-0 w-full h-full pt-2 px-2">
+            <Container
+              style={{width: '100%'}}
+              groupName='droppable'
+              animationDuration={0}
+              behaviour='drop-zone'
+              onDrop={(e) => {this.handleNewGroupDrop(e)}}
+            >
+              <div className="inline-flex items-end justify-center border-2 border-dashed border-gray-400 rounded-lg w-full h-full z-0 p-2 text-gray-400 font-semibold text-xl">Drop to table</div>
+            </Container>
+          </div>
+        }
       </div>
     )
   } 
@@ -169,7 +79,6 @@ class Table extends Component {
 
 function mapStateToProps(state) {
   return {
-    count: state.count,
     endpoint: state.endpoint,
     gameId: state.gameId,
     gameDb: state.gameDb,
@@ -177,7 +86,8 @@ function mapStateToProps(state) {
     user: state.user,
     isTableActive: state.isTableActive,
     savedCard: state.savedCard,
-    savedGroup: state.savedGroup,
+    toGroup: state.toGroup,
+    fromGroup: state.fromGroup,
 
     userIsDragging: state.userIsDragging,
     draggedCard: state.draggedCard

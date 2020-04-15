@@ -53,6 +53,7 @@ const NOTFORUSE_gameDb = {
   ]
 }
 
+// on game start
 const initNewGame = function(gameId) {
   let thisGameDb = dbTools.getGameDb(gameId)
   
@@ -90,6 +91,7 @@ const initNewGame = function(gameId) {
   })
 }
 
+// new game turn
 const setNewTurn = (gameId, newPlayer) => {
   let thisGameDb = dbTools.getGameDb(gameId)
   const currentPlayer = thisGameDb.currentPlayer
@@ -166,6 +168,7 @@ const sendEachUserInfo = function(gameId, gameDb, username) {
   }
 }
 
+// HELPER: Send game info to all
 const sendGameInfo = function(gameId, gameDb) {
   let thisGamePublicDb = gameDb
 
@@ -227,7 +230,6 @@ game.on('connection', function(socket) {
     sendUserInfo(gameId, thisGameDb, username)
 
     // Send connected users info
-    //console.log('thisGameDb.players:', thisGameDb.players)
     sendGameInfo(gameId, thisGameDb)
   })
 
@@ -249,7 +251,8 @@ game.on('connection', function(socket) {
   socket.on('card from stock to user', function(gameId, username) {
     let thisGameDb = dbTools.getGameDb(gameId)
 
-    if (thisGameDb.currentPlayerHasGrabbedCard) {return false}
+    // stop if current player has already grabbed card
+    if (thisGameDb.currentPlayerHasGrabbedCard) { return false }
 
     const result = dbTools.getCardsFromStock(gameId, 1)
 
@@ -274,37 +277,20 @@ game.on('connection', function(socket) {
   socket.on('card from user to discard', function(gameId, username, card) {
     let thisGameDb = dbTools.getGameDb(gameId)
 
-    let newPlayerHand = []
-    let newDiscard = thisGameDb.discard
-
-    for (let i in thisGameDb.players) {
-      if (thisGameDb.players[i].username === username) {
-        for (let h in thisGameDb.players[i].hand) {
-          if (thisGameDb.players[i].hand[h].id === card.id) {
-            console.log('its a match')
-            //newPlayerHand = thisGameDb.players[i].hand.splice(h, 1)
-          } else {
-            newPlayerHand.push(thisGameDb.players[i].hand[h])
-          }
-        }
-      }
-    }
+    // let newPlayerHand = []
+    let newDiscard = thisGameDb.discard.slice()
 
     newDiscard.push(card)
 
     dbTools.setGameDb(gameId, {
-      discard: newDiscard,
-      player: {
-        username: username,
-        hand: newPlayerHand
-      }
+      discard: newDiscard
     })
 
 
     setNewTurn(gameId, username)
     thisGameDb = dbTools.getGameDb(gameId)
 
-    sendUserInfo(gameId, thisGameDb, username)
+    // sendUserInfo(gameId, thisGameDb, username)
     sendGameInfo(gameId, thisGameDb)
   })
 
@@ -338,7 +324,7 @@ game.on('connection', function(socket) {
     dbTools.setGameDb(gameId, {
       table: table
     })
-    
+
     thisGameDb = dbTools.getGameDb(gameId)
     sendGameInfo(gameId, thisGameDb)
   })
@@ -349,6 +335,113 @@ game.on('connection', function(socket) {
 
 
 
+  socket.on('new group', function(gameId, username, content) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    const newGroup = {
+      id: tools.guidGenerator(),
+      cards: [content.card]
+    }
+
+    thisGameDb.table.push(newGroup)
+
+    dbTools.setGameDb(gameId, {
+      table: thisGameDb.table
+    })
+
+    sendUserInfo(gameId, thisGameDb, username)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+  socket.on('remove card from group', function(gameId, username, content) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
+
+    let newGroupCards = thisGameDb.table[groupIndex].cards
+    newGroupCards.splice(content.removedIndex, 1)
+
+    const isGroupEmpty = !newGroupCards.length
+
+    if (!isGroupEmpty) {
+      dbTools.setGameDb(gameId, {
+        group: {
+          id: thisGameDb.table[groupIndex].id,
+          cards: newGroupCards
+        }
+      })
+    } else {
+      const thisTable = thisGameDb.table.slice()
+
+      thisTable.splice(groupIndex, 1)
+      dbTools.setGameDb(gameId, {
+        table: thisTable
+      })
+    }
+
+    thisGameDb = dbTools.getGameDb(gameId)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+  socket.on('add card to group', function(gameId, username, content) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
+
+    let newGroupCards = thisGameDb.table[groupIndex].cards
+    newGroupCards.splice(content.addedIndex, 0, content.card)
+
+    dbTools.setGameDb(gameId, {
+      group: {
+        id: thisGameDb.table[groupIndex].id,
+        cards: newGroupCards
+      }
+    })
+
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+
+  socket.on('remove card from player hand', function(gameId, username, content) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
+    const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
+
+    let newHand = thisGameDb.players[playerIndex].hand
+    newHand.splice(cardIndex, 1)
+
+    dbTools.setGameDb(gameId, {
+      playerRemoveCard: {
+        username: thisGameDb.players[playerIndex].username,
+        hand: newHand
+      }
+    })
+
+    sendUserInfo(gameId, thisGameDb, username)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+  socket.on('add card to player hand', function(gameId, username, content) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
+
+    let newHand = thisGameDb.players[playerIndex].hand
+    newHand.splice(content.addedIndex, 0, content.card)
+
+    dbTools.setGameDb(gameId, {
+      player: {
+        username: thisGameDb.players[playerIndex].username,
+        hand: newHand
+      }
+    })
+
+    sendUserInfo(gameId, thisGameDb, username)
+    sendGameInfo(gameId, thisGameDb)
+  })
+
+  
 
 
 
@@ -364,20 +457,24 @@ game.on('connection', function(socket) {
 
     const doesUserExist = () => {
       let userExists = false
-      for (i in thisGameDb.connectedClients) {
-        if (thisGameDb.connectedClients[i].socketId === socket.id) {
+      for (i in thisGameDb.players) {
+        if (thisGameDb.players[i].socketId === socket.id) {
           userExists = i 
         }
       }
       return userExists
     }
 
+    const userIndex = doesUserExist()
+
+      console.log('happn disconnect 0')
     // Set user as offline
-    if (doesUserExist()) {
-      thisGameDb.connectedClients[doesUserExist()].isOnline = false
-    }
+    console.log(thisGameDb.players)
+      console.log('happn disconnect 1')
+      thisGameDb.players[userIndex].isOnline = false
 
     fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisGameDb), (err) => {})
+    sendGameInfo(thisGameId, thisGameDb)
 
   })
 

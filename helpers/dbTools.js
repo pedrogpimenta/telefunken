@@ -56,9 +56,6 @@ module.exports = {
   setGameDb: function(gameId, gameDb) {
     console.log('--- set db')
 
-    // (not used anymore) if receive gameDb
-
-    //console.log('new db info sent')
     const doesDbExist = fs.existsSync('db/' + gameId + '.js') 
 
     // if db exists
@@ -66,40 +63,29 @@ module.exports = {
       let currentGameDb = this.getGameDb(gameId)
       console.log('db exists:', gameId)
 
-      //console.log('currentGameDb.players', currentGameDb.players)
-
       // loop through sent keys/value
       for (let key in gameDb) {
-        //console.log('each key in gameDb. key:', key)
 
         // if sending player info
         if (key === 'player') {
-          //console.log('key is player')
 
           // check if any player exists
           if (currentGameDb.players.length > 0) {
-            //console.log('there are players in current db')
             // for each current db player
 
             let doesUserExist = false
             for (let i in currentGameDb.players) {
-              //console.log('each player in currentGameDb. i:', i, 'value.username:', currentGameDb.players[i].username)
-              //console.log('this player info. i:', gameDb.player.username)
 
               if (currentGameDb.players[i].username === gameDb.player.username) {
-                //console.log('user matches:', gameDb.player.username)
 
                 doesUserExist = true
                 // for each key in current player from current db
                 for (let key in currentGameDb.players[i]) {
                   const currentDbPlayerKey = key
-                  //console.log('each user key:', key)
-
                   // for each key in player from new info
                   for (let key in gameDb.player) {
                     // if key matches
                     if (key === currentDbPlayerKey) {
-                      //console.log('|| WHAT', key, currentDbPlayerKey, gameDb.player[key])
                       if (key === 'hand') {
                         console.log('currenthand:', currentGameDb.players[i]['hand'].length)
                         console.log('hand:', gameDb.player[key].length)
@@ -122,7 +108,6 @@ module.exports = {
             }
 
             if (!doesUserExist) {
-              console.log('user doesnt exist, create new:', gameDb.player.username)
               let newPlayer = initialPlayerInfo
               newPlayer.id = tools.guidGenerator()
               // for each key in current player from current db
@@ -139,7 +124,6 @@ module.exports = {
               currentGameDb.players.push(newPlayer)
             }
           } else {
-            //console.log('no users, create first')
             let newPlayer = initialPlayerInfo
             newPlayer.id = tools.guidGenerator()
             // for each key in current player from current db
@@ -155,24 +139,34 @@ module.exports = {
             }
             currentGameDb.players.push(newPlayer)
           }
+        } else if (key === 'playerRemoveCard') {
+          const thisPlayerUsername = gameDb[key].username 
+          const thisIndex = currentGameDb.players.findIndex(player => player.username === thisPlayerUsername)
+
+          currentGameDb.players[thisIndex].hand = gameDb[key].hand
+
+        } else if (key === 'group') {
+          let thisTable = currentGameDb.table.slice()
+          const thisGroupId = gameDb[key].id 
+
+          const thisGroupIndex = thisTable.findIndex(group => group.id === thisGroupId)
+
+          thisTable[thisGroupIndex].cards = gameDb[key].cards
+
+          currentGameDb.table = thisTable
         } else {
-          //console.log('key not player, set others')
           // set regular/simple keys
           currentGameDb[key] = gameDb[key]
         }
       }
 
       // save new info to db
-      //console.log('save info1')
       fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(currentGameDb), (err) => {})
     } else {
       // save initial info to db with name "gameId"
       console.log('db doesnt exist, creating new:', gameId)
       fs.writeFileSync('db/' + gameId + '.js', JSON.stringify(setInitialGameDb(gameId)), (err) => {})
     }
-
-    //console.log('--- set db END ---')
-    //console.log('gameDb:', this.getGameDb(gameId))
   },
 
   getCardsFromStock: function(gameId, n) {
@@ -207,5 +201,4 @@ module.exports = {
       }
     }
   }
-
 }

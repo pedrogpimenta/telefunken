@@ -1,6 +1,7 @@
 import React from "react"
 
 function PlayingCard(props) {
+  // render suit icon
   const renderSuit = () => {
     switch(props.suit) {
       case 'diamonds':
@@ -16,51 +17,37 @@ function PlayingCard(props) {
     }
   }
 
-  const isRedSuit = () => {
-    if (props.suit === 'hearts' || props.suit === 'diamonds') {
-      return true
-    }
+  // render red color on hearts and diamons
+  const isRedSuit = () => props.suit === 'hearts' || props.suit === 'diamonds'
 
-    return false
-  }
+  // card is facing back
+  const isCardHidden = () => !props.value || !props.suit
 
-  const isCardHidden = () => {
-    if (!props.value || !props.suit) {
-      return true
-    }
-
-    return false
-  }
-
-  const isCardSelected = () => {
-    if (props.selected) {
-      return true
-    }
-  }
-
+  // TODO: style jungle
   const cardColour = isRedSuit() ? 'text-red-600' : 'text-black'
-  const cardBorderColour = isCardSelected() ? 'border-red-500 shadow-xl': 'border-gray-400'
+  const cardBorderColour = 'border-gray-400'
 
-  const cardDefaultClasses = `inline-flex flex-col flex-shrink-0 items-center justify-start leading-none bg-white border-2 border-solid ${cardBorderColour} ${cardColour} rounded px-2 py-1 mx-2 my-2 w-16 h-20 text-xl tracking-tighter`
+  const cardDefaultClasses = `select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-start leading-none bg-white border-2 border-solid ${cardBorderColour} ${cardColour} rounded px-2 py-1 mx-2 my-2 w-16 h-20 text-xl tracking-tighter`
 
   const cardBackClasses = `${cardDefaultClasses} bg-gray-300`
   const cardClasses = isCardHidden() ? cardBackClasses : cardDefaultClasses
 
-  const otherPlayerClasses = `inline-flex flex-col flex-shrink-0 items-center justify-center leading-none bg-gray-300 border-2 border-solid ${cardBorderColour} text-gray-700 rounded px-2 py-1 -ml-10 w-12 h-16 text-3xl tracking-tighter`
+  const otherPlayerClasses = `select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-center leading-none bg-gray-300 border-2 border-solid ${cardBorderColour} text-gray-700 rounded px-2 py-1 -ml-10 w-12 h-16 text-3xl tracking-tighter`
 
-  const stockClasses = `inline-flex flex-col flex-shrink-0 items-center justify-center leading-none bg-gray-300 border-2 border-solid ${cardBorderColour} text-gray-700 rounded px-2 py-1 w-12 h-16 text-3xl tracking-tighter`
+  const stockClasses = `select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-center leading-none bg-gray-300 border-2 border-solid ${cardBorderColour} text-gray-700 rounded px-2 py-1 w-12 h-16 text-l tracking-tight`
 
-  const cardDiscardClasses = `inline-flex flex-col flex-shrink-0 items-center justify-start leading-none bg-white border-2 border-solid ${cardBorderColour} ${cardColour} rounded px-2 py-1 mx-2 my-2 w-12 h-16 text-xl tracking-tighter`
+  const cardDiscardClasses = `select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-start leading-none bg-white border-2 border-solid ${cardBorderColour} ${cardColour} rounded px-2 py-1 mx-2 my-2 w-12 h-16 text-xl tracking-tighter`
   const cardDiscardBackClasses = `${cardDiscardClasses} bg-gray-300`
 
   const renderCard = () => {
     if (props.type === 'other players') {
       return (
-        <div className={otherPlayerClasses} onClick={(e) => props.onClick(props)}>
+        <div className={otherPlayerClasses}>
           <span className="inline-flex font-bold">{props.value}</span>
         </div>
       ) 
     } else if (props.type === 'discard') {
+      // TODO: move this logic
       let thisClasses = ''
       if (!props.value || !props.suit) {
         thisClasses = `${cardDiscardBackClasses}`
@@ -68,7 +55,7 @@ function PlayingCard(props) {
         thisClasses = `${cardDiscardClasses} -ml-16`
       }
       return (
-        <div className={thisClasses} onClick={(e) => props.onClick(props)}>
+        <div className={thisClasses}>
           <span className="font-bold" style={{marginLeft: '-1.4rem'}}>{props.value}</span>
           <span style={{marginLeft: '-1.4rem'}}>{renderSuit()}</span>
         </div>
@@ -82,7 +69,7 @@ function PlayingCard(props) {
     } else {
       return (
         <div className="inline-block">
-          <div className={cardClasses} onClick={(e) => props.onClick(props)}>
+          <div className={cardClasses}>
             <span className="font-bold" style={{marginLeft: '-2.4rem'}}>{props.value}</span>
             <span style={{marginLeft: '-2.4rem'}}>{renderSuit()}</span>
           </div>
@@ -92,6 +79,7 @@ function PlayingCard(props) {
   }
 
   return (
+    // TODO: dis stoopid
     renderCard()
   )
 }

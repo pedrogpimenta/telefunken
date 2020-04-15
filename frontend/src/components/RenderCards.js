@@ -4,93 +4,93 @@ import { Container, Draggable } from 'react-smooth-dnd'
 import PlayingCard from './PlayingCard'
 
 class RenderCards extends Component {
-  render() {
-    const handleStockCardClick = (e) => {
-      this.props.onClick('stock', e)
-    }
+  constructor() {
+    super()
 
-    const handleTableCardClick = (e) => {
-      this.props.onClick('table', e)
-    }
+    this.handleStockCardClick = this.handleStockCardClick.bind(this)
 
-    const handleUserCardClick = (e) => {
-      this.props.onClick('user', e)
-    }
+    this.handlePlayerDropReady = this.handlePlayerDropReady.bind(this)
+    this.handlePlayerCardDrop = this.handlePlayerCardDrop.bind(this)
+    this.handleUserDragStart = this.handleUserDragStart.bind(this)
+    this.handleUserDragEnd = this.handleUserDragEnd.bind(this)
+    this.handlePlayerDragEnter = this.handlePlayerDragEnter.bind(this)
+    this.handlePlayerDragLeave = this.handlePlayerDragLeave.bind(this)
 
-    const handleGroupEnter = () => {
-      console.log('ola:', this.props.index)
-      this.props.dispatch({
-        type: "SAVE_GROUP_TO_DROP",
-        group: this.props.index
-      })
-    }
+    this.handleTableGroupDropReady = this.handleTableGroupDropReady.bind(this)
+    this.handleTableGroupDrop = this.handleTableGroupDrop.bind(this)
+    this.handleTableGroupDragStart = this.handleTableGroupDragStart.bind(this)
+    this.handleTableGroupDragEnd = this.handleTableGroupDragEnd.bind(this)
+    this.handleTableGroupDragEnter = this.handleTableGroupDragEnter.bind(this)
+    this.handleTableGroupDragLeave = this.handleTableGroupDragLeave.bind(this)
+  }
 
-    const handleGroupLeave = () => {
-      console.log('adio:', this.props.index)
-    }
+  // Pass stock click to parent
+  handleStockCardClick(e) {
+    this.props.onClick('stock', e)
+  }
 
-    const handleGroupDrop = (dragInfo) => {
-      if (this.props.savedGroup === 'table' || this.props.savedGroup === 'discard' || this.props.savedGroup === null ) { return false }
+  // ------------------- 
+  // player card actions
+  // ------------------- 
 
-      let thisTable = this.props.gameDb.table.slice()
-      let thisGroup = this.props.gameDb.table[this.props.savedGroup].slice()
-      let thisUserHand = this.props.user.hand.slice()
+  // player hand -- drag start
+  handleUserDragStart() {
+    this.props.dispatch({ type: 'USER_IS_DRAGGING' })
+  }
 
-      for (let i in thisUserHand) {
-        if (thisUserHand[i].id === this.props.savedCard.id) {
-          thisUserHand.splice(i, 1)
-        }
-      }
+  // player hand -- drag end
+  handleUserDragEnd() {
+    this.props.dispatch({ type: 'USER_IS_NOT_DRAGGING' })
+  }
 
-      thisGroup.push(this.props.savedCard)
-      thisTable[this.props.savedGroup] = thisGroup
+  // player area -- right before drop
+  handlePlayerDropReady(index, e) {
+    const removedIndex = e.removedIndex
 
-      this.props.dispatch({
-        type: "UPDATE_TABLE",
-        table: thisTable
-      })
-
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        id: this.props.user.id,
-        username: this.props.user.username,
-        isOnline: this.props.user.isOnline,
-        hand: thisUserHand
-      })
-
-      this.props.dispatch({
-        type: "SAVE_GROUP_TO_DROP",
-        group: null
-      })
-    }
-
-
-
-
-
-
-
-
-    const handlePlayerCardDrag = (dragInfo) => {
-      const removedIndex = dragInfo.removedIndex
-      const addedIndex = dragInfo.addedIndex
-
-      let currentCards = this.props.cards.slice()
-      let draggedCard = currentCards[removedIndex]
-
-      // save card to state
+    // get current dragged card
+    let currentCards = this.props.cards.slice()
+    let draggedCard = currentCards[removedIndex]
+    
+    // save card to state
+    if (draggedCard) {
       this.props.dispatch({
         type: "SAVE_CARD",
         card: draggedCard
-      })
+      })  
+    }
+  }
 
-      // stop if card is dragged out of Player's hand
-      if (addedIndex === null) { return false }
+  // player hand -- drop card
+  handlePlayerCardDrop(e) {
+    const removedIndex = e.removedIndex
+    const addedIndex = e.addedIndex
+    const fromGroup = this.props.fromGroup
+    const card = this.props.savedCard
+    let currentCards = this.props.cards.slice()
 
+    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    // stop if not removed or added to this group
+    if (removedIndex === null && addedIndex === null) { return false }
+
+    // if card removed from players hand and NOT added
+    if (removedIndex !== null && addedIndex === null) { 
+      this.props.sendToServer('remove card from player hand', {card})
+      return false
+    }
+
+    // if card added to players hand and NOT removed
+    if (addedIndex !== null && removedIndex === null) { 
+      this.props.sendToServer('add card to player hand', {card, addedIndex})
+      currentCards.splice(addedIndex, 0, card)
+      return false
+    }
+
+    // if card moved inside players hand (removed and added)
+    if (removedIndex !== null && addedIndex !== null) { 
       // remove card
       currentCards.splice(removedIndex, 1)
       // add card to new place
-      currentCards.splice(addedIndex, 0, draggedCard)
+      currentCards.splice(addedIndex, 0, card)
 
       // save hand to state
       this.props.dispatch({
@@ -100,55 +100,81 @@ class RenderCards extends Component {
         hand: currentCards 
       }) 
 
-      this.props.dispatch({
-        type: 'SAVE_GROUP',
-        group: 'none'
-      }) 
-
       // save hand on server
       this.props.handleHandUpdate()
+      return false
+    }
+  }
+
+  // player hand -- enter area
+  handlePlayerDragEnter() {
+    // this.props.dispatch({
+    //   type: 'SAVE_GROUP_TO',
+    //   group: 'player'
+    // }) 
+  }
+
+  // player hand -- leave area
+  handlePlayerDragLeave() {
+    // this.props.dispatch({
+    //   type: 'SAVE_GROUP_FROM',
+    //   group: 'player'
+    // }) 
+  }
+
+  // ------------------- 
+  // table groups card actions
+  // ------------------- 
+
+  handleTableGroupDropReady(id, e) {
+    const removedIndex = e.removedIndex
+
+    const groupIndex = this.props.gameDb.table.findIndex(group => group.id === id)
+
+    let newGroup = {...this.props.gameDb.table[groupIndex]}
+    let draggedCard = newGroup.cards[removedIndex]
+    
+    // save card to state
+    if (draggedCard) {
+      this.props.dispatch({
+        type: "SAVE_CARD",
+        card: draggedCard
+      })  
+    }
+  }
+
+  // card drops in table group
+  handleTableGroupDrop(id, e) {
+    const removedIndex = e.removedIndex
+    const addedIndex = e.addedIndex
+    const card = this.props.savedCard
+
+    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    if (addedIndex === null && removedIndex === null) { return false }
+    const groupIndex = this.props.gameDb.table.findIndex(group => group.id === id)
+
+    let newGroup = {...this.props.gameDb.table[groupIndex]}
+    let newGroupCards = newGroup.cards
+
+    if (removedIndex >= 0 && addedIndex === null) {
+      newGroupCards.splice(removedIndex, 1)
+      const isGroupEmpty = !newGroupCards.length
+      this.props.sendToServer('remove card from group', {card, groupId: id, removedIndex})
     }
 
-    const handleUserDragStart = (dragInfo) => {
-      this.props.dispatch({ type: 'USER_IS_DRAGGING' })
-    }
-    const handleUserDragEnd = (dragInfo) => {
-      this.props.dispatch({ type: 'USER_IS_NOT_DRAGGING' })
+    if (addedIndex >= 0 && removedIndex === null) {
+      newGroupCards.splice(addedIndex, 0, this.props.savedCard)
+      this.props.sendToServer('add card to group', {card, groupId: id, addedIndex})
     }
 
-
-
-
-
-
-
-
-
-    const handleTableGroupCardDrag = (index, dragInfo) => {
-      const removedIndex = dragInfo.removedIndex
-      const addedIndex = dragInfo.addedIndex
-      let thisTable = this.props.gameDb.table.slice()
-      const savedGroup = this.props.savedGroup
-
-      if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
-      if (this.props.gameDb.currentPlayer !== this.props.user.username) { return false }
-      if (savedGroup.substring(0, 5) !== 'group') { return false }
-
-      const thisGroupIndex = parseInt(savedGroup.substring(5, savedGroup.length + 1))
-      console.log('thisGroupIndex:', thisGroupIndex, 'index:', index)
-      if (thisGroupIndex !== index) { return false }
-
-      const savedCard = this.props.savedCard
-
-      console.log('this index:', index)
-      console.log('savedCard:', savedCard)
-      console.log('TABLE GROUP DRAG ' + thisGroupIndex + ': removedIndex:', removedIndex, 'addedIndex:', addedIndex)
-
-      let thisGroupArray = this.props.gameDb.table[thisGroupIndex].slice()
-
+    if (removedIndex !== null && addedIndex !== null) {
+      // remove card
+      newGroupCards.splice(removedIndex, 1)
       // add card to new place
-      thisGroupArray.splice(addedIndex, 0, savedCard)
-      thisTable[index] = thisGroupArray 
+      newGroupCards.splice(addedIndex, 0, card)
+
+      let thisTable = this.props.gameDb.table.slice()
+      thisTable[groupIndex].cards = newGroupCards
 
       this.props.dispatch({
         type: "UPDATE_TABLE",
@@ -156,109 +182,24 @@ class RenderCards extends Component {
       })
 
       this.props.handleTableUpdate()
-
-      // remove card from player's hand
-      let playerCards = this.props.user.hand.slice()
-      const cardIndex = playerCards.findIndex((card) => card.id === this.props.savedCard.id)
-      playerCards.splice(cardIndex, 1)
-
-      // save hand to state
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        username: this.props.user.username,
-        id: this.props.user.id,
-        hand: playerCards 
-      }) 
-      // save hand on server
-      this.props.handleHandUpdate()
-      
-      this.props.dispatch({
-        type: 'SAVE_GROUP',
-        group: 'none'
-      }) 
-
     }
+  }
 
-    const handleTableGroupDragEnter = (index) => {
-      console.log('enter group:', `group${index}`)
-      this.props.dispatch({
-        type: 'SAVE_GROUP',
-        group: `group${index}`
-      }) 
-    }
-    const handleTableGroupDragLeave = () => {
-      console.log('leave group:')
-      this.props.dispatch({
-        type: 'SAVE_GROUP',
-        group: 'none'
-      }) 
-    }
+  handleTableGroupDragStart(index, e) {
+    if (!e.isSource) {return false}
+  }
 
+  handleTableGroupDragEnd(index, e) {
+  }
+
+  handleTableGroupDragEnter(index) {
+  }
+
+  handleTableGroupDragLeave(index) {
+  }
 
 
-    
-
-
-
-
-
-
-
-
-    const handleDrop = (dragInfo) => {
-      console.log('dragInfo:', dragInfo)
-      const removedIndex = dragInfo.removedIndex
-      const addedIndex = dragInfo.addedIndex
-
-      let prevCards = this.props.cards
-      let nextCards = prevCards.slice()
-
-      const movedCard = prevCards[removedIndex]
-
-      if (addedIndex !== null && removedIndex !== null) {
-        for (let i in prevCards) {
-          if (removedIndex < addedIndex) {
-            if (i > removedIndex && i <= addedIndex) {
-              const thisCard = prevCards[i] 
-              nextCards[i - 1] = thisCard
-            } else {
-              nextCards[i] = prevCards[i]
-            }
-          } else if (addedIndex < removedIndex) {
-            if (i > addedIndex && i <= removedIndex) {
-              const thisCard = prevCards[i - 1] 
-              nextCards[i] = thisCard
-            } else {
-              nextCards[i] = prevCards[i]
-            }
-          } else {
-            nextCards = prevCards
-          }
-        }
-
-        nextCards[addedIndex] = movedCard
-
-        this.props.dispatch({
-          type: "UPDATE_USER_INFO",
-          id: this.props.user.id,
-          username: this.props.user.username,
-          isOnline: true,
-          hand: nextCards
-        })
-      } else {
-        let thisCard = prevCards[removedIndex]
-
-        this.props.dispatch({
-          type: "SAVE_DROPPED_CARD",
-          card: thisCard
-        })
-
-      }
-
-
-      this.props.handleHandUpdate()
-    }
-
+  render() {
     switch(this.props.location) {
       case 'discard':
         if (!!this.props.cards) {
@@ -268,7 +209,6 @@ class RenderCards extends Component {
             value={card.value}
             suit={card.suit}
             type={this.props.location}
-            onClick={(e) => {}}
           />)
         }
         return null
@@ -276,7 +216,7 @@ class RenderCards extends Component {
         return <PlayingCard
             value={this.props.cards}
             type={this.props.location}
-            onClick={(e) => handleStockCardClick(e)}
+            onClick={(e) => this.handleStockCardClick(e)}
           />
       case 'other players':
         const cardsLength = this.props.cards.length
@@ -292,7 +232,6 @@ class RenderCards extends Component {
               value={showCardsLength}
               suit={card.suit}
               type={this.props.location}
-              onClick={(e) => null}
             />)
           })
       case 'table':
@@ -300,8 +239,19 @@ class RenderCards extends Component {
           const numberOfCards = this.props.cards.length
           const maxWidth = 100/numberOfCards + '%'
           return (
-            <div className="border-2 border-solid border-gray-300 mx-2">
-              <Container key={this.props.index} style={{display: 'flex', maxWidth: '100vw', flexWrap: 'wrap'}} orientation='horizontal' groupName='droppable' onDragEnter={(e) => {handleTableGroupDragEnter(this.props.index)}} onDragLeave={(e) => {handleTableGroupDragLeave()}} onDrop={(e) => {handleTableGroupCardDrag(this.props.index, e)}}>
+            <div className="border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10">
+              <Container
+                style={{display: 'flex', maxWidth: '100vw', flexWrap: 'wrap'}}
+                orientation='horizontal'
+                groupName='droppable'
+                dragBeginDelay={0}
+                onDragStart={(e) => {this.handleTableGroupDragStart(this.props.index, e)}}
+                onDragEnd={(e) => {this.handleTableGroupDragEnd(this.props.index, e)}}
+                onDragEnter={(e) => {this.handleTableGroupDragEnter(this.props.index)}}
+                onDragLeave={(e) => {this.handleTableGroupDragLeave(this.props.index)}}
+                onDrop={(e) => {this.handleTableGroupDrop(this.props.id, e)}}
+                onDropReady={(e) => {this.handleTableGroupDropReady(this.props.id, e)}}
+              >
                 {this.props.cards.map((card, index) => (
                   <Draggable key={index} className="inline-flex" style={{maxWidth: maxWidth}}>
                     <PlayingCard
@@ -309,8 +259,6 @@ class RenderCards extends Component {
                       id={card.id}
                       value={card.value}
                       suit={card.suit}
-                      selected={card.selected}
-                      onClick={(e) => handleTableCardClick(e)}
                     />
                   </Draggable>)
                 )}
@@ -323,7 +271,21 @@ class RenderCards extends Component {
           const numberOfCards = this.props.cards.length
           const maxWidth = 100/numberOfCards + '%'
           return (
-            <Container style={{display: 'flex', maxWidth: '100vw', flexWrap: 'wrap'}} orientation='horizontal' groupName='droppable' onDrop={handlePlayerCardDrag} onDragStart={handleUserDragStart} onDragEnd={handleUserDragEnd}>
+            <Container style={{
+                display: 'flex',
+                maxWidth: '100vw',
+                flexWrap: 'wrap'
+              }}
+              orientation='horizontal'
+              groupName='droppable'
+              dragBeginDelay={0}
+              onDragStart={(e) => {this.handleUserDragStart('player', e)}}
+              onDragEnd={(e) => {this.handleUserDragEnd('player')}}
+              onDragEnter={(e) => {this.handlePlayerDragEnter('player')}}
+              onDragLeave={(e) => {this.handlePlayerDragLeave()}}
+              onDrop={(e) => {this.handlePlayerCardDrop(e)}}
+              onDropReady={(e) => {this.handlePlayerDropReady(this.props.index, e)}}
+            >
               {this.props.cards.map((card, index) => (
                 <Draggable key={index} className="inline-flex" style={{maxWidth: maxWidth}}>
                   <PlayingCard
@@ -331,8 +293,6 @@ class RenderCards extends Component {
                     id={card.id}
                     value={card.value}
                     suit={card.suit}
-                    selected={card.selected}
-                    onClick={(e) => handleUserCardClick(e)}
                   />
                 </Draggable>)
               )}
@@ -349,7 +309,11 @@ function mapStateToProps(state) {
     user: state.user,
     gameDb: state.gameDb,
     savedCard: state.savedCard,
-    savedGroup: state.savedGroup
+    toGroup: state.toGroup,
+    fromGroup: state.fromGroup,
+    savedGroupToIndex: state.savedGroupToIndex,
+    savedGroupFromIndex: state.savedGroupFromIndex,
+    savedGroupFromMinusOne: state.savedGroupFromMinusOne
   }
 }
 

@@ -9,7 +9,7 @@ class Input extends Component {
         id={this.props.id}
         type={this.props.text}
         placeholder={this.props.placeholder}
-        value={this.props.username}
+        value={this.props.value}
         onChange={this.props.onChange}
       />
     )

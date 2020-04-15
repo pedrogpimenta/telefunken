@@ -6,24 +6,28 @@ import {
   Route
 } from "react-router-dom"
 
-//import './index.css'
+// redux for state
+import { createStore } from 'redux'
+import { Provider } from 'react-redux';
+
+// CSS & tailwind
 import './assets/main.css'
 
+// service workers (came with create-react-app)
+import * as serviceWorker from './serviceWorker'
+
+// my components
 import App from './components/App'
 import Welcome from './components/Welcome'
 
-import * as serviceWorker from './serviceWorker'
 
 
 
 
 
-
-import { Provider } from 'react-redux';
-import { createStore } from 'redux'
-
+// define initial state 
 const initialState = {
-  endpoint: 'ef9dbac3.ngrok.io/game',
+  endpoint: 'localhost:4001/game',
   gameId: '',
   connectedUsers: [],
   gameDb: {
@@ -63,16 +67,14 @@ const initialState = {
   },
   userIsDragging: false,
   savedCard: 'none',
-  savedGroup: 'none'
+  fromGroup: 'none',
+  toGroup: 'none',
+  minusOne: 0
 }
 
+// define reducers
 function reducer(state = initialState, action) {
   switch(action.type) {
-    case 'INCREMENT':
-      return {
-        ...state,
-        count: state.count + 1
-      }
     case 'SET_GAMEID':
       return {
         ...state,
@@ -84,14 +86,6 @@ function reducer(state = initialState, action) {
         user: {
           ...state.user,
           username: action.username
-        }
-      }
-    case 'INCREMENT_USER_CARDS':
-      return {
-        ...state,
-        user: {
-          ...state.user,
-          cards: state.user.cards + 1
         }
       }
     case 'UPDATE_GAME':
@@ -110,11 +104,6 @@ function reducer(state = initialState, action) {
           hand: action.hand || state.hand
         }
       }
-    case 'USER_IS_SENDING_TO_TABLE':
-      return {
-        ...state,
-        isTableActive: !state.isTableActive
-      }
     case 'UPDATE_TABLE':
       return {
         ...state,
@@ -122,31 +111,6 @@ function reducer(state = initialState, action) {
           ...state.gameDb,
           table: action.table
         }
-      }
-    case 'SAVE_DROPPED_CARD':
-      return {
-        ...state,
-        savedCard: action.card
-      }
-    case 'SAVE_GROUP_TO_DROP':
-      return {
-        ...state,
-        savedGroup: action.group
-      }
-
-
-
-
-
-    case 'SAVE_GROUP':
-      return {
-        ...state,
-        savedGroup: action.group
-      }
-    case 'SAVE_CARD':
-      return {
-        ...state,
-        savedCard: action.card
       }
     case 'USER_IS_DRAGGING':
       return {
@@ -159,22 +123,46 @@ function reducer(state = initialState, action) {
         userIsDragging: false
       }
 
-
-
+    case 'SAVE_CARD':
+      return {
+        ...state,
+        savedCard: action.card
+      }
+    case 'SAVE_GROUP_TO':
+      return {
+        ...state,
+        toGroup: action.group
+      }
+    case 'SAVE_GROUP_FROM':
+      return {
+        ...state,
+        fromGroup: action.group
+      }
+    case 'SAVE_GROUP_TO_INDEX':
+      return {
+        ...state,
+        savedGroupToIndex: action.savedGroupToIndex
+      }
+    case 'SAVE_GROUP_FROM_INDEX':
+      return {
+        ...state,
+        savedGroupFromIndex: action.savedGroupFromIndex
+      }
+    case 'SAVE_GROUP_TO_MINUS_ONE':
+      return {
+        ...state,
+        savedGroupFromMinusOne: action.minusOne
+      }
 
     default:
       return state;
   }
 }
 
+// create store & enable redux dev tools
 const store = createStore(reducer, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
 
-
-
-
-
-
-
+// root component
 const Root = () => {
   return (
     <Provider store={store}>
