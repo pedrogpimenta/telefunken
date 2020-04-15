@@ -68,18 +68,19 @@ class RenderCards extends Component {
     const card = this.props.savedCard
     let currentCards = this.props.cards.slice()
 
-    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
     // stop if not removed or added to this group
     if (removedIndex === null && addedIndex === null) { return false }
 
     // if card removed from players hand and NOT added
     if (removedIndex !== null && addedIndex === null) { 
+      if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
       this.props.sendToServer('remove card from player hand', {card})
       return false
     }
 
     // if card added to players hand and NOT removed
     if (addedIndex !== null && removedIndex === null) { 
+      if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
       this.props.sendToServer('add card to player hand', {card, addedIndex})
       currentCards.splice(addedIndex, 0, card)
       return false
@@ -149,7 +150,7 @@ class RenderCards extends Component {
     const addedIndex = e.addedIndex
     const card = this.props.savedCard
 
-    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
     if (addedIndex === null && removedIndex === null) { return false }
     const groupIndex = this.props.gameDb.table.findIndex(group => group.id === id)
 
