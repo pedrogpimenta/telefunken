@@ -20,39 +20,6 @@ app.get('/*', (req, res) => {
 
 
 
-
-
-// data model for game database
-const NOTFORUSE_gameDb = {
-  gameId: '',
-  deck: [], // initial cards
-  stock: [], // remaining cards for play
-  discard: [],
-  totalRounds: 6,
-  currentRound: 0,
-  currentPlayer: '',
-  direction: '', // clockwise/counterclockwise
-  table: [], // stores array of cards on table
-  players: [ // keeps track of players and events
-    {
-      id: '',
-      socketId: '',
-      username: '',
-      hand: [],
-      buys: 6,
-      totalPoints: 0,
-      isOnline: true,
-      events: [
-        {
-          roundNumber: 1, // number of the round
-          buys: 0, // how many buys in this round
-          points: 0 // if 0, player cut in this round
-        }
-      ]
-    }
-  ]
-}
-
 // on game start
 const initNewGame = function(gameId) {
   let thisGameDb = dbTools.getGameDb(gameId)
@@ -65,7 +32,9 @@ const initNewGame = function(gameId) {
   const result = dbTools.getCardsFromStock(gameId, 3)
   dbTools.setGameDb(gameId, {
     stock: result.newStock,
-    discard: result.cards
+    discard: result.cards,
+    currentRound: 1,
+    currentTurn: 1
   })
   thisGameDb = dbTools.getGameDb(gameId)
 
@@ -86,8 +55,7 @@ const initNewGame = function(gameId) {
   // assign first player randomly
   let newPlayersArray = tools.shuffle(thisGameDb.players)
   dbTools.setGameDb(gameId, {
-    currentPlayer: newPlayersArray[0].username,
-    currentRound: thisGameDb.currentRound + 1
+    currentPlayer: newPlayersArray[0].username
   })
 }
 
@@ -95,12 +63,14 @@ const initNewGame = function(gameId) {
 const setNewTurn = (gameId, newPlayer) => {
   let thisGameDb = dbTools.getGameDb(gameId)
   const currentPlayer = thisGameDb.currentPlayer
+  const currentTurn = thisGameDb.currentTurn
 
   const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
 
   dbTools.setGameDb(gameId, {
     currentPlayer: nextPlayer,
-    currentPlayerHasGrabbedCard: false
+    currentPlayerHasGrabbedCard: false,
+    currentTurn: currentTurn + 1
   })
 }
 
