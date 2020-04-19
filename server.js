@@ -66,11 +66,15 @@ const setNewTurn = (gameId, newPlayer) => {
   const currentTurn = thisGameDb.currentTurn
 
   const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
+  const prevPlayer = thisGameDb.currentPlayer
 
   dbTools.setGameDb(gameId, {
+    prevPlayer: prevPlayer,
     currentPlayer: nextPlayer,
     currentPlayerHasGrabbedCard: false,
-    currentTurn: currentTurn + 1
+    currentTurn: currentTurn + 1,
+    aPlayerHasBoughtThisTurn: false,
+    someoneWantsItBefore: false
   })
 }
 
@@ -79,6 +83,69 @@ const setNewRound = (gameId) => {
   const thisTurn = thisGameDb.currentRound
 }
 
+const handleBuying = (gameId, username) => {
+  let currentGameDb = {...dbTools.getGameDb(gameId)}
+  const someoneWantsItBefore = currentGameDb.someoneWantsItBefore
+
+  console.log('start handle buying for:', username)
+  console.log('someoneWantsItBefore:', someoneWantsItBefore)
+
+  if (!!someoneWantsItBefore && someoneWantsItBefore !== username) { return false }
+
+  console.log('no one wanted it before:', username)
+
+  // console.log('handleBuying currentGameDb.discard:', currentGameDb.discard)
+
+  let currentDiscard = currentGameDb.discard.slice()
+  const playerIndex = currentGameDb.players.findIndex(player => player.username === username)
+  let hiddenCardsWereBought = currentGameDb.hiddenCardsWereBought || false
+
+  if (currentGameDb.currentTurn === 1) {
+    console.log('turn 1')
+    console.log('currentDiscard lengthj:', currentDiscard.length)
+    hiddenCardsWereBought = true
+
+    for (let card in currentDiscard) {
+      console.log('currentDiscard card:', card)
+      const newCard = currentDiscard[card]
+      currentGameDb.players[playerIndex].hand.push(newCard)
+    }
+
+    currentDiscard.splice(0, 3)
+
+  } else {
+    console.log('not turn 1')
+    // let currentDiscard = currentGameDb.discard.slice()
+    let newCard = currentDiscard[currentDiscard.length - 1]
+
+    currentDiscard.splice(currentDiscard.length - 1, 1)
+    currentGameDb.players[playerIndex].hand.push(newCard)
+  }
+
+  const result = dbTools.getCardsFromStock(gameId, 1)
+
+  for (let i in result.cards) {
+    currentGameDb.players[playerIndex].hand.push(result.cards[i]) 
+  }
+
+  dbTools.setGameDb(gameId, {
+    stock: result.newStock,
+    discard: currentDiscard,
+    aPlayerHasBoughtThisTurn: true,
+    hiddenCardsWereBought: hiddenCardsWereBought,
+    player: {
+      username: currentGameDb.players[playerIndex].username,
+      hand: currentGameDb.players[playerIndex].hand
+    }
+  }) 
+
+  game.to(gameId).emit('player wants to buy', false)
+
+  currentGameDb = dbTools.getGameDb(gameId)
+
+  sendUserInfo(gameId, currentGameDb, username)
+  sendGameInfo(gameId, currentGameDb) 
+}
 
 
 
@@ -143,11 +210,11 @@ const sendGameInfo = function(gameId, gameDb) {
   let thisGamePublicDb = gameDb
 
   // hide first 2 discard pile cards value
-  if (thisGamePublicDb.discard.length > 0) {
-    thisGamePublicDb.discard[0].value = ''
-    thisGamePublicDb.discard[0].suit = ''
-    thisGamePublicDb.discard[1].value = ''
-    thisGamePublicDb.discard[1].suit = ''
+  if (!thisGamePublicDb.hiddenCardsWereBought && thisGamePublicDb.discard.length > 1) {
+    thisGamePublicDb.discard[0].value = null
+    thisGamePublicDb.discard[0].suit = null
+    thisGamePublicDb.discard[1].value = null
+    thisGamePublicDb.discard[1].suit = null
   }
 
   // Hide stock cards value
@@ -156,8 +223,8 @@ const sendGameInfo = function(gameId, gameDb) {
   // Hide players hand cards
   for (i in thisGamePublicDb.players) {
     for (h in thisGamePublicDb.players[i].hand) {
-      thisGamePublicDb.players[i].hand[h].value = ''
-      thisGamePublicDb.players[i].hand[h].suit = ''
+      thisGamePublicDb.players[i].hand[h].value = null
+      thisGamePublicDb.players[i].hand[h].suit = null
     }
   }
 
@@ -411,7 +478,44 @@ game.on('connection', function(socket) {
     sendGameInfo(gameId, thisGameDb)
   })
 
-  
+  socket.on('player buys', function(gameId, username) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    // stop if someone already bought on this turn
+    if (thisGameDb.aPlayerHasBoughtThisTurn) { return false }
+
+    console.log(`${username} wants to buy`)
+
+    dbTools.setGameDb(gameId, {
+      playerIsBuying: username
+    }) 
+
+    if (thisGameDb.currentPlayer === username) {
+      handleBuying(gameId, username)
+    } else {
+      game.to(gameId).emit('player wants to buy', username)
+
+      setTimeout(() => {handleBuying(gameId, username)}, 10000)
+    }
+  })
+
+  socket.on('i want it before', function(gameId, username) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+
+    console.log('i want it before:', username)
+
+    dbTools.setGameDb(gameId, {
+      someoneWantsItBefore: username
+    }) 
+
+    if (thisGameDb.currentPlayer === username) {
+      handleBuying(gameId, username)
+    } else {
+      game.to(gameId).emit('player wants to buy', username)
+
+      setTimeout(() => {handleBuying(gameId, username)}, 10000)
+    }
+  })
 
 
 
@@ -437,11 +541,11 @@ game.on('connection', function(socket) {
 
     const userIndex = doesUserExist()
 
-      console.log('happn disconnect 0')
+      // console.log('happn disconnect 0')
     // Set user as offline
-    console.log(thisGameDb.players)
-      console.log('happn disconnect 1')
-      thisGameDb.players[userIndex].isOnline = false
+    // console.log(thisGameDb.players)
+      // console.log('happn disconnect 1')
+      // thisGameDb.players[userIndex].isOnline = false
 
     fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisGameDb), (err) => {})
     sendGameInfo(thisGameId, thisGameDb)

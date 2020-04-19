@@ -10922,11 +10922,19 @@ video {
   margin-left: -3rem;
 }
 
-.hasHiddenCards > div:nth-child(n + 1) {
-  margin-left: -3rem;
+.hasHiddenCards > div:nth-child(2) {
+  margin-left: -2.8rem;
+}
+
+.hasHiddenCards > div:nth-child(n + 3) {
+  margin-left: -2.8rem;
 }
 
 .hasHiddenCards > div:nth-child(n + 4) {
+  margin-left: -3.5rem;
+}
+
+.noHiddenCards > div:nth-child(n + 2) {
   margin-left: -3.5rem;
 }
 
@@ -21245,11 +21253,19 @@ video {
     margin-left: -3rem;
   }
 
-  .sm\:hasHiddenCards > div:nth-child(n + 1) {
-    margin-left: -3rem;
+  .sm\:hasHiddenCards > div:nth-child(2) {
+    margin-left: -2.8rem;
+  }
+
+  .sm\:hasHiddenCards > div:nth-child(n + 3) {
+    margin-left: -2.8rem;
   }
 
   .sm\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
+
+  .sm\:noHiddenCards > div:nth-child(n + 2) {
     margin-left: -3.5rem;
   }
 }
@@ -31569,11 +31585,19 @@ video {
     margin-left: -3rem;
   }
 
-  .md\:hasHiddenCards > div:nth-child(n + 1) {
-    margin-left: -3rem;
+  .md\:hasHiddenCards > div:nth-child(2) {
+    margin-left: -2.8rem;
+  }
+
+  .md\:hasHiddenCards > div:nth-child(n + 3) {
+    margin-left: -2.8rem;
   }
 
   .md\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
+
+  .md\:noHiddenCards > div:nth-child(n + 2) {
     margin-left: -3.5rem;
   }
 }
@@ -41893,11 +41917,19 @@ video {
     margin-left: -3rem;
   }
 
-  .lg\:hasHiddenCards > div:nth-child(n + 1) {
-    margin-left: -3rem;
+  .lg\:hasHiddenCards > div:nth-child(2) {
+    margin-left: -2.8rem;
+  }
+
+  .lg\:hasHiddenCards > div:nth-child(n + 3) {
+    margin-left: -2.8rem;
   }
 
   .lg\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
+
+  .lg\:noHiddenCards > div:nth-child(n + 2) {
     margin-left: -3.5rem;
   }
 }
@@ -52217,11 +52249,19 @@ video {
     margin-left: -3rem;
   }
 
-  .xl\:hasHiddenCards > div:nth-child(n + 1) {
-    margin-left: -3rem;
+  .xl\:hasHiddenCards > div:nth-child(2) {
+    margin-left: -2.8rem;
+  }
+
+  .xl\:hasHiddenCards > div:nth-child(n + 3) {
+    margin-left: -2.8rem;
   }
 
   .xl\:hasHiddenCards > div:nth-child(n + 4) {
+    margin-left: -3.5rem;
+  }
+
+  .xl\:noHiddenCards > div:nth-child(n + 2) {
     margin-left: -3.5rem;
   }
 }

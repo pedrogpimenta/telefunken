@@ -22,6 +22,7 @@ class RenderCards extends Component {
     this.handleTableGroupDragEnd = this.handleTableGroupDragEnd.bind(this)
     this.handleTableGroupDragEnter = this.handleTableGroupDragEnter.bind(this)
     this.handleTableGroupDragLeave = this.handleTableGroupDragLeave.bind(this)
+    this.showUngrabbed = this.showUngrabbed.bind(this)
   }
 
   // Pass stock click to parent
@@ -199,6 +200,24 @@ class RenderCards extends Component {
   handleTableGroupDragLeave(index) {
   }
 
+  showUngrabbed() {
+
+    if (this.props.gameDb.currentPlayer === this.props.user.username) {
+      console.log('show ungrabbed 1')
+      console.log('hasCurrentPlayerGrabbedCard:', this.props.gameDb.currentPlayerHasGrabbedCard)
+      if (this.props.gameDb.currentPlayerHasGrabbedCard) {
+      console.log('show ungrabbed 2')
+        return false
+      } else {
+      console.log('show ungrabbed 3')
+        return true
+      }
+    } else {
+      console.log('show ungrabbed 4')
+      return false
+    }
+  }
+
 
   render() {
     switch(this.props.location) {
@@ -217,6 +236,7 @@ class RenderCards extends Component {
         return <PlayingCard
             value={this.props.cards}
             type={this.props.location}
+            showUngrabbed={this.showUngrabbed}
             onClick={(e) => this.handleStockCardClick(e)}
           />
       case 'other players':
@@ -224,7 +244,7 @@ class RenderCards extends Component {
         return this.props.cards.map((card, i) => {
           let showCardsLength = 0
           if (this.props.cards.length === i + 1) {
-            showCardsLength = (this.props.cards.length === i + 1) ? cardsLength : 0
+            showCardsLength = (this.props.cards.length === i + 1) ? cardsLength : null
           }
           return (
             <PlayingCard

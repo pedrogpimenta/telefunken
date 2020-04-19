@@ -27,7 +27,7 @@ import Welcome from './components/Welcome'
 
 // define initial state 
 const initialState = {
-  endpoint: 'localhost:4001/game',
+  endpoint: 'dd002e41.ngrok.io/game',
   gameId: '',
   connectedUsers: [],
   gameDb: {
@@ -69,7 +69,8 @@ const initialState = {
   savedCard: 'none',
   fromGroup: 'none',
   toGroup: 'none',
-  minusOne: 0
+  minusOne: 0,
+  playerWantsToBuy: ''
 }
 
 // define reducers
@@ -152,6 +153,12 @@ function reducer(state = initialState, action) {
       return {
         ...state,
         savedGroupFromMinusOne: action.minusOne
+      }
+    case 'PLAYER_WANTS_TO_BUY':
+    console.log('reducer want to buy')
+      return {
+        ...state,
+        playerWantsToBuy: action.value
       }
 
     default:

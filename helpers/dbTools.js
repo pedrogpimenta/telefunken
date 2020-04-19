@@ -184,14 +184,27 @@ module.exports = {
 
     nextStock.splice(prevStock.length - n, n)
 
+    if (nextStock.length === 0) {
+      let currentDiscard = this.getGameDb(gameId).discard
+      let newDiscard = []
+      newDiscard.push(currentDiscard[currentDiscard.length - 1])
+
+      currentDiscard.splice(currentDiscard.length - 1, 1)
+      nextStock = currentDiscard
+
+      this.setGameDb(gameId, {
+        discard: newDiscard
+      })
+    }
+
     return {newStock: nextStock, cards}
+
   },
 
   nextPlayerIndex: function(gameId) {
     const thisGameDb = this.getGameDb(gameId)
 
     for (i in thisGameDb.players) {
-      console.log('i:', i)
       if (thisGameDb.players[i].username === thisGameDb.currentPlayer) {
         if ((parseInt(i) + 1) > (thisGameDb.players.length - 1)) {
           return 0

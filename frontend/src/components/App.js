@@ -22,12 +22,16 @@ class App extends Component {
     this.handleDiscardDrop = this.handleDiscardDrop.bind(this)
     this.handleHandUpdate = this.handleHandUpdate.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
+    this.handleBuyButton = this.handleBuyButton.bind(this)
 
     this.renderHeader = this.renderHeader.bind(this)
     this.renderDiscardPile = this.renderDiscardPile.bind(this)
     this.renderStock = this.renderStock.bind(this)
     this.renderMain = this.renderMain.bind(this)
     this.renderPlayer = this.renderPlayer.bind(this)
+    this.renderBuyButton = this.renderBuyButton.bind(this)
+    this.renderBuyRequest = this.renderBuyRequest.bind(this)
+    this.handleIWantItBeforeButton = this.handleIWantItBeforeButton.bind(this)
   }
 
   // ------------------- 
@@ -69,6 +73,16 @@ class App extends Component {
     this.socket.emit(action, this.props.gameDb.gameId, this.props.user.username, content)
   }
 
+  handleBuyButton() {
+    console.log('buy!')
+    this.socket.emit('player buys', this.props.gameDb.gameId, this.props.user.username)
+  }
+
+  handleIWantItBeforeButton() {
+    console.log('no, me!')
+    this.socket.emit('i want it before', this.props.gameDb.gameId, this.props.user.username)
+  }
+
   // ------------------- 
   // render functions
   // ------------------- 
@@ -76,25 +90,24 @@ class App extends Component {
   // render header
   renderHeader() {
     return (
-      <div className="inline-flex items-end justify-between border-b border-solid border-gray-300">
+      <div className="relative z-20 inline-flex items-end justify-between border-b border-solid border-gray-300">
         <div className="inline-flex flex-grow">
           <RenderPlayers players={this.props.gameDb.players} />
         </div>
-        {this.renderDiscardPile()}
-        {this.renderStock()}
+        <div className="inline-flex justify-center py-2">
+          {this.renderDiscardPile()}
+          {this.renderStock()}
+        </div>
+        {this.renderBuyRequest()}
       </div>
     )
   }
 
   // render discard pile
   renderDiscardPile() {
-    let hasHiddenCards = null
+    let hasHiddenCards = this.props.gameDb.hiddenCardsWereBought ? 'noHiddenCards' : 'hasHiddenCards'
 
-    for (let i in this.props.gameDb.discard) {
-      hasHiddenCards = (hasHiddenCards === null || this.props.gameDb.discard[i].value) ? 'hasHiddenCards' : null
-    }
-
-    const classes = `inline-flex ${hasHiddenCards}`
+    const classes = `inline-flex ${hasHiddenCards} rounded border-2 border-dashed border-gray-400`
 
     return (
       <Container
@@ -103,7 +116,10 @@ class App extends Component {
         behaviour='drop-zone'
         onDrop={(e) => {this.handleDiscardDrop(e)}}
       >
-        <div className={classes}>
+        <div
+          className={classes}
+          style={{minWidth: '4.3rem', minHeight: '100%'}}
+        >
           <RenderCards cards={this.props.gameDb.discard} location='discard' />
         </div>
       </Container>
@@ -113,10 +129,43 @@ class App extends Component {
   // render stock
   renderStock() {
     return (
-      <div className="inline-flex items-center justify-center m-2">
+      <div className="inline-flex items-center justify-center">
         <RenderCards cards={this.props.gameDb.stock} location='stock' onClick={this.handleCardClick} />
       </div>
     )
+  }
+
+  renderBuyRequest() {
+    const playerWantsToBuy = this.props.playerWantsToBuy
+    console.log('render buy:', this.props.playerWantsToBuy)
+
+    if (this.props.gameDb.prevPlayer === this.props.user.username || this.props.playerWantsToBuy === this.props.user.username) { return false }
+
+    if (!!playerWantsToBuy) {
+      return(
+        <div
+          className='absolute bottom-0 right-0 rounded mr-2 p-2 text-center bg-red-400'
+          style={{transform: 'translateY(110%)'}}
+        >
+          {playerWantsToBuy} wants to buy!
+          <div className='flex mt-2'>
+            <Button
+              classes="mr-1"
+            >
+              OK
+            </Button>
+            <Button
+              classes="ml-1"
+              onClick={(e) => {this.handleIWantItBeforeButton(e)}}
+            >
+              No, me!
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    return false
   }
 
   // render player
@@ -142,17 +191,36 @@ class App extends Component {
     )
   }
 
+  renderBuyButton() {
+    const isPrevPlayerThisPlayer = this.props.gameDb.prevPlayer === this.props.user.username
+    const hasCurrentPlayerGrabbedCard = this.props.gameDb.currentPlayerHasGrabbedCard
+    const isBuyButtonDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard
+
+    return (
+      <div className="absolute right-0 top-0">
+        <Button
+          disabled={isBuyButtonDisabled}
+          onClick={(e) => {this.handleBuyButton(e)}}
+        >
+          Comprar
+        </Button>
+      </div>  
+    )
+  }
+
   // render player
   renderPlayer() {
     return (
-      <div className="inline-flex flex-col items-center">
+      <div className="relative inline-flex items-center">
         <Player
           key={this.props.user.username}
           user={this.props.user}
           handleHandUpdate={(e) => this.handleHandUpdate(e)}
           currentPlayer={this.props.gameDb.currentPlayer}
+          handleBuyButton={(e) => this.handleBuyButton(e)}
           sendToServer={(action, content) => this.sendToServer(action, content)}
         />
+        {this.renderBuyButton()}
       </div>
     )
   }
@@ -205,6 +273,11 @@ class App extends Component {
     this.socket.on('updateGame', (gameDb) => {
       this.props.dispatch({ type: "UPDATE_GAME", value: gameDb })
     })
+
+    // receive buy request
+    this.socket.on('player wants to buy', (username) => {
+      this.props.dispatch({ type: "PLAYER_WANTS_TO_BUY", value: username })
+    })
   }
 
 
@@ -227,7 +300,8 @@ function mapStateToProps(state) {
     connectedUsers: state.connectedUsers,
     user: state.user,
     isTableActive: state.isTableActive,
-    savedCard: state.savedCard
+    savedCard: state.savedCard,
+    playerWantsToBuy: state.playerWantsToBuy
   }
 }
 
