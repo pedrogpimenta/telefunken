@@ -15,6 +15,24 @@ class RenderPlayers extends Component {
       const styles = isPlayerOnline ? onlineClasses : offlineClasses
 
       const showAllCards = this.props.gameDb.currentRoundEnded ? 'showAllCards' : null
+
+      let userTotalPoints = 0
+
+      for (let i in player.hand) {
+        const thisValue = player.hand[i].value
+
+        if (thisValue === 'A' || thisValue === 'K' || thisValue === 'Q' || thisValue === 'J') {
+          userTotalPoints += 10
+        } else if (thisValue == 2) {
+          userTotalPoints += 15
+        } else {
+          userTotalPoints += parseInt(thisValue)
+        }
+
+      }
+
+      console.log('userTotalPoints:', userTotalPoints)
+
       if (player.username === this.props.user.username) { return false }
 
       return (
@@ -26,6 +44,11 @@ class RenderPlayers extends Component {
               </strong>
             }
             {!isCurrentPlayer(player.username) && player.username}
+            {this.props.gameDb.currentRoundEnded &&
+              <span className='font-bold ml-3 p-1 bg-gray-400 rounded'>
+                {userTotalPoints}
+              </span>
+            }
           </span>
           <span className={`inline-flex showOnlyTwoCards ${showAllCards}`}>
             <RenderCards key={player.username} cards={player.hand} location='other players' />
