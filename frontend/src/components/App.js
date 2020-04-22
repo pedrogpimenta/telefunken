@@ -83,20 +83,34 @@ class App extends Component {
     this.socket.emit('i want it before', this.props.gameDb.gameId, this.props.user.username)
   }
 
+  handleNewRoundButton() {
+    console.log('new round!!')
+    this.socket.emit('start new round', this.props.gameDb.gameId)
+  }
+
   // ------------------- 
   // render functions
   // ------------------- 
 
   // render header
   renderHeader() {
+    if (!this.props.gameDb.currentRound) { return false }
     return (
       <div className="relative z-20 inline-flex items-end justify-between border-b border-solid border-gray-300">
         <div className="inline-flex flex-grow">
           <RenderPlayers players={this.props.gameDb.players} />
         </div>
         <div className="inline-flex justify-center py-2">
-          {this.renderDiscardPile()}
-          {this.renderStock()}
+          {this.props.gameDb.currentRoundEnded &&
+            <div className="inline-flex self-center">
+              <Button
+                classes='mx-2'
+                onClick={(e) => {this.handleNewRoundButton(e)}}
+              >
+                Nueva ronda!
+              </Button>
+            </div>
+          }
         </div>
         {this.renderBuyRequest()}
       </div>
@@ -111,6 +125,12 @@ class App extends Component {
 
     return (
       <Container
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          marginLeft: '1rem'
+        }}
         groupName='droppable'
         animationDuration={0}
         behaviour='drop-zone'
@@ -129,7 +149,7 @@ class App extends Component {
   // render stock
   renderStock() {
     return (
-      <div className="inline-flex items-center justify-center">
+      <div className="absolute bottom-0 left-0 ml-32 mb-2 inline-flex items-center justify-center">
         <RenderCards cards={this.props.gameDb.stock} location='stock' onClick={this.handleCardClick} />
       </div>
     )
@@ -137,7 +157,6 @@ class App extends Component {
 
   renderBuyRequest() {
     const playerWantsToBuy = this.props.playerWantsToBuy
-    console.log('render buy:', this.props.playerWantsToBuy)
 
     if (this.props.gameDb.prevPlayer === this.props.user.username || this.props.playerWantsToBuy === this.props.user.username) { return false }
 
@@ -171,7 +190,7 @@ class App extends Component {
   // render player
   renderMain() {
     return (
-      <div className="inline-flex flex-col items-center justify-center flex-grow flex-shrink">
+      <div className="relative inline-flex flex-col items-center justify-center flex-grow flex-shrink">
         {!!this.props.gameDb.currentRound &&
           <Table 
             handleTableUpdate={(e) => this.handleTableUpdate(e)}
@@ -179,13 +198,25 @@ class App extends Component {
             sendToServer={(action, content) => this.sendToServer(action, content)}
           />
         }
+        {!!this.props.gameDb.currentRound && this.renderDiscardPile()}
+        {!!this.props.gameDb.currentRound && this.renderStock()}
         {!this.props.gameDb.currentRound &&
-          <Button
-            classes="m-2"
-            onClick={(e) => this.handleStartGameButton(e)}
-          >
-            Start game!
-          </Button>
+          <div> 
+            <p>Jugadores:</p>
+            <ul>
+              {this.props.gameDb.players.map(player => (
+                <li key={`playerList-${player.id}`}>
+                {player.username}
+                </li>
+              ))}
+            </ul>
+            <Button
+              classes="m-2"
+              onClick={(e) => this.handleStartGameButton(e)}
+            >
+              Start game!
+            </Button>
+          </div>
         }
       </div>
     )
@@ -200,6 +231,7 @@ class App extends Component {
       <div className="absolute right-0 top-0">
         <Button
           disabled={isBuyButtonDisabled}
+          classes='mx-2'
           onClick={(e) => {this.handleBuyButton(e)}}
         >
           Comprar
@@ -210,6 +242,7 @@ class App extends Component {
 
   // render player
   renderPlayer() {
+    if (!this.props.gameDb.currentRound) { return false }
     return (
       <div className="relative inline-flex items-center">
         <Player

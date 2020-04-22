@@ -30,10 +30,16 @@ const initNewGame = function(gameId) {
 
   // put 3 cards on discard pile
   const result = dbTools.getCardsFromStock(gameId, 3)
+
+  console.log('init currentRound:', thisGameDb.currentRound)
+  const setRoundNumber = thisGameDb.currentRound ? thisGameDb.currentRound + 1 : 1
+
+  console.log('thisGameDb.currentRound:', thisGameDb.currentRound)
+
   dbTools.setGameDb(gameId, {
     stock: result.newStock,
     discard: result.cards,
-    currentRound: 1,
+    currentRound: setRoundNumber,
     currentTurn: 1
   })
   thisGameDb = dbTools.getGameDb(gameId)
@@ -52,11 +58,31 @@ const initNewGame = function(gameId) {
     })
   }
 
-  // assign first player randomly
-  let newPlayersArray = tools.shuffle(thisGameDb.players)
-  dbTools.setGameDb(gameId, {
-    currentPlayer: newPlayersArray[0].username
-  })
+  if (thisGameDb.currentRound === 1) {
+    // if it's the first round assign first player randomly
+    let newPlayersArray = tools.shuffle(thisGameDb.players)
+    dbTools.setGameDb(gameId, {
+      firstPlayer: newPlayersArray[0].username,
+      currentPlayer: newPlayersArray[0].username
+    })
+  } else {
+    // if it's a different round, select player next to the first
+    let nextPlayerPreIndex = thisGameDb.players.findIndex(player => (player.username === thisGameDb.firstPlayer)) + 1
+
+    if (nextPlayerPreIndex > thisGameDb.players.length - 1) {
+      nextPlayerIndex = 0
+    } else {
+      nextPlayerIndex = nextPlayerPreIndex
+    }
+
+    const nextPlayer = thisGameDb.players[nextPlayerIndex].username
+
+    dbTools.setGameDb(gameId, {
+      firstPlayer: nextPlayer,
+      currentPlayer: nextPlayer
+    })
+  }
+
 }
 
 // new game turn
@@ -78,11 +104,17 @@ const setNewTurn = (gameId, newPlayer) => {
   })
 }
 
-const setNewRound = (gameId) => {
+// round ends
+const endThisRound = (gameId) => {
   let thisGameDb = dbTools.getGameDb(gameId)
-  const thisTurn = thisGameDb.currentRound
+  dbTools.setGameDb(gameId, {
+    currentRoundEnded: true
+  })
+
+  // let currentGameDb = {...dbTools.getGameDb(gameId)}
 }
 
+// handle buying
 const handleBuying = (gameId, username) => {
   let currentGameDb = {...dbTools.getGameDb(gameId)}
   const someoneWantsItBefore = currentGameDb.someoneWantsItBefore
@@ -209,6 +241,9 @@ const sendEachUserInfo = function(gameId, gameDb, username) {
 const sendGameInfo = function(gameId, gameDb) {
   let thisGamePublicDb = gameDb
 
+  // Hide stock cards value
+  thisGamePublicDb.stock = gameDb.stock.length
+
   // hide first 2 discard pile cards value
   if (!thisGamePublicDb.hiddenCardsWereBought && thisGamePublicDb.discard.length > 1) {
     thisGamePublicDb.discard[0].value = null
@@ -217,18 +252,24 @@ const sendGameInfo = function(gameId, gameDb) {
     thisGamePublicDb.discard[1].suit = null
   }
 
-  // Hide stock cards value
-  thisGamePublicDb.stock = gameDb.stock.length
+  const sendEverything = gameDb.currentRoundEnded
 
-  // Hide players hand cards
-  for (i in thisGamePublicDb.players) {
-    for (h in thisGamePublicDb.players[i].hand) {
-      thisGamePublicDb.players[i].hand[h].value = null
-      thisGamePublicDb.players[i].hand[h].suit = null
+  if (sendEverything) {
+    console.log('########### SEND EVERYTHING')
+    game.to(gameId).emit('updateGame', gameDb)
+  } else {
+
+    console.log('########### SEND not EVERYTHING')
+    // Hide players hand cards
+    for (i in thisGamePublicDb.players) {
+      for (h in thisGamePublicDb.players[i].hand) {
+        thisGamePublicDb.players[i].hand[h].value = null
+        thisGamePublicDb.players[i].hand[h].suit = null
+      }
     }
-  }
 
-  game.to(gameId).emit('updateGame', thisGamePublicDb)
+    game.to(gameId).emit('updateGame', thisGamePublicDb)
+  }
 }
 
 
@@ -323,8 +364,19 @@ game.on('connection', function(socket) {
       discard: newDiscard
     })
 
+    const thisPlayerIndex = thisGameDb.players.findIndex(player => player.username === username)
 
-    setNewTurn(gameId, username)
+    if (thisGameDb.players[thisPlayerIndex].hand.length === 0) {
+      endThisRound(gameId)
+    } else if (thisGameDb.players[thisPlayerIndex].hand.length === 1) {
+      if (thisGameDb.players[thisPlayerIndex].hand[0].id === card.id) {
+        endThisRound(gameId)
+      }
+    } else {
+      setNewTurn(gameId, username)
+    }
+
+
     thisGameDb = dbTools.getGameDb(gameId)
 
     // sendUserInfo(gameId, thisGameDb, username)
@@ -516,6 +568,33 @@ game.on('connection', function(socket) {
       setTimeout(() => {handleBuying(gameId, username)}, 10000)
     }
   })
+
+  socket.on('start new round', function(gameId) {
+    let thisGameDb = {...dbTools.getGameDb(gameId)}
+    console.log('yeas')
+
+    for (let i in thisGameDb.players) {
+      thisGameDb.players[i].hand = []
+    }
+
+    dbTools.setGameDb(gameId, {
+      players: thisGameDb.players,
+      discard: [],
+      stock: [],
+      table: [],
+      currentRoundEnded: false,
+      currentTurn: 0,
+      currentPlayerHasGrabbedCard: false
+    })
+
+    initNewGame(gameId)
+
+    const newGameDb = dbTools.getGameDb(gameId)
+
+    sendEachUserInfo(gameId, newGameDb)
+    sendGameInfo(gameId, newGameDb)
+  })
+
 
 
 

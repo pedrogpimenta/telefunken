@@ -1,18 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400;1,500;1,700;1,900&display=swap');
-
 @tailwind base;
+
+@font-face {
+  font-family: Roboto;
+  font-weight: 700;
+  src: url(/fonts/Roboto-Bold.woff) format("woff");
+}
+
+@font-face {
+  font-family: Roboto;
+  font-weight: 400;
+  src: url(/fonts/Roboto-Regular.woff) format("woff");
+}
 
 @tailwind components;
 
 @tailwind utilities;
 
 @responsive {
-  .showAllCards > div + div ~ div {
-    @apply -ml-10;
+
+  :root.preferDarkMode {
   }
 
-  .showOnlyTwoCards > div + div ~ div {
-    @apply -ml-12;
+  .showOnlyTwoCards > div ~ div {
+    margin-left: -3.5rem;
+  }
+
+  .showOnlyTwoCards > div:not(:last-child) {
+    transform: rotateZ(-12deg);
+  }
+
+  .showOnlyTwoCards > div:first-child {
+    transform: rotateZ(-24deg);
+  }
+
+  .showAllCards > div {
+    transform: none !important;
+  }
+
+  .showAllCards > div ~ div {
+    margin-left: -2rem;
   }
 
   .hasHiddenCards > div:nth-child(2) {
@@ -29,5 +55,13 @@
 
   .noHiddenCards > div:nth-child(n + 2) {
     margin-left: -3.5rem;
+  }
+
+  .tableGroupSm > div > div ~ div {
+    margin-left: -2.6rem;
+  }
+
+  .tableGroupMd > div > div ~ div {
+    margin-left: -3.3rem;
   }
 }

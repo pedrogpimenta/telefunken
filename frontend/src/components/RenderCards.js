@@ -203,17 +203,12 @@ class RenderCards extends Component {
   showUngrabbed() {
 
     if (this.props.gameDb.currentPlayer === this.props.user.username) {
-      console.log('show ungrabbed 1')
-      console.log('hasCurrentPlayerGrabbedCard:', this.props.gameDb.currentPlayerHasGrabbedCard)
       if (this.props.gameDb.currentPlayerHasGrabbedCard) {
-      console.log('show ungrabbed 2')
         return false
       } else {
-      console.log('show ungrabbed 3')
         return true
       }
     } else {
-      console.log('show ungrabbed 4')
       return false
     }
   }
@@ -241,9 +236,11 @@ class RenderCards extends Component {
           />
       case 'other players':
         const cardsLength = this.props.cards.length
+        const showCardValue = this.props.gameDb.currentRoundEnded
+
         return this.props.cards.map((card, i) => {
-          let showCardsLength = 0
-          if (this.props.cards.length === i + 1) {
+          let showCardsLength = showCardValue ? card.value : 0
+          if (showCardsLength === 0 && this.props.cards.length === i + 1) {
             showCardsLength = (this.props.cards.length === i + 1) ? cardsLength : null
           }
           return (
@@ -253,6 +250,7 @@ class RenderCards extends Component {
               value={showCardsLength}
               suit={card.suit}
               type={this.props.location}
+              showCardValue={showCardValue}
             />)
           })
       case 'table':
@@ -260,9 +258,13 @@ class RenderCards extends Component {
           const numberOfCards = this.props.cards.length
           const maxWidth = 100/numberOfCards + '%'
           return (
-            <div className="border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10">
+            <div className="border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10 tableGroupSm md:tableGroupMd">
               <Container
-                style={{display: 'flex', maxWidth: '100vw', flexWrap: 'wrap'}}
+                style={{
+                  display: 'flex',
+                  maxWidth: '100vw',
+                  flexWrap: 'wrap'
+                }}
                 orientation='horizontal'
                 groupName='droppable'
                 dragBeginDelay={0}
@@ -274,7 +276,7 @@ class RenderCards extends Component {
                 onDropReady={(e) => {this.handleTableGroupDropReady(this.props.id, e)}}
               >
                 {this.props.cards.map((card, index) => (
-                  <Draggable key={index} className="inline-flex" style={{maxWidth: maxWidth}}>
+                  <Draggable key={index} className="inline-flex">
                     <PlayingCard
                       key={card.id}
                       id={card.id}

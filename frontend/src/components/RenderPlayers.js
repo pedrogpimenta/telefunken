@@ -14,6 +14,7 @@ class RenderPlayers extends Component {
       const offlineClasses = `${onlineClasses} opacity-75`
       const styles = isPlayerOnline ? onlineClasses : offlineClasses
 
+      const showAllCards = this.props.gameDb.currentRoundEnded ? 'showAllCards' : null
       if (player.username === this.props.user.username) { return false }
 
       return (
@@ -26,7 +27,7 @@ class RenderPlayers extends Component {
             }
             {!isCurrentPlayer(player.username) && player.username}
           </span>
-          <span className="inline-flex ml-10 showOnlyTwoCards sm:showAllCards">
+          <span className={`inline-flex showOnlyTwoCards ${showAllCards}`}>
             <RenderCards key={player.username} cards={player.hand} location='other players' />
           </span>
         </div>

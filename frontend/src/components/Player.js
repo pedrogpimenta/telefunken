@@ -8,7 +8,7 @@ function Player(props) {
   // const isBuyButtonDisabled = 
 
   return (
-    <div className="relative inline-flex flex-col items-start py-2">
+    <div className="relative inline-flex flex-col items-start p-2">
 
       <div className="mx-2">
         {isCurrentPlayer &&
