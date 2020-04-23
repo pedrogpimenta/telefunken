@@ -58,6 +58,7 @@ class App extends Component {
     if (e.removedIndex === null && e.addedIndex === null) { return false }
     // stop if user hasn't grabbed card
     if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    if (this.props.user.username !== this.props.gameDb.currentPlayer) { return false }
     this.socket.emit('card from user to discard', this.props.gameDb.gameId, this.props.user.username, this.props.savedCard)
   }
 
