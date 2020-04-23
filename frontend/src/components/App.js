@@ -138,7 +138,7 @@ class App extends Component {
       >
         <div
           className={classes}
-          style={{minWidth: '4.3rem', minHeight: '100%'}}
+          style={{minWidth: '4.3rem', minHeight: '5rem'}}
         >
           <RenderCards cards={this.props.gameDb.discard} location='discard' />
         </div>
