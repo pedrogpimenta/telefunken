@@ -27,7 +27,7 @@ import Welcome from './components/Welcome'
 
 // define initial state 
 const initialState = {
-  endpoint: 'dd002e41.ngrok.io/game',
+  endpoint: 'localhost:4001/game',
   gameId: '',
   connectedUsers: [],
   gameDb: {
