@@ -24,9 +24,9 @@ class Table extends Component {
     // stop if not for this group
     if (removedIndex === null && addedIndex === null) { return false }
     // stop if user hasn't grabbed card
-    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    if (!this.props.room.currentPlayerHasGrabbedCard) { return false }
     // stop if user isn't current player
-    if (this.props.gameDb.currentPlayer !== this.props.user.username) { return false }
+    if (this.props.room.currentPlayer !== this.props.user.username) { return false }
 
     this.props.sendToServer('new group', {card})
   }
@@ -36,7 +36,7 @@ class Table extends Component {
   // ------------------- 
 
   renderTableGroups() {
-    return this.props.gameDb.table.map((group, index) => (
+    return this.props.room.table.map((group, index) => (
       <RenderCards
         key={group.id}
         id={group.id}
@@ -53,13 +53,13 @@ class Table extends Component {
   render () {
     return (
       <div className="relative flex flex-col  sm:flex-row sm:flex-wrap items-start justify-center w-full h-full pt-4">
-        {this.props.gameDb.table && 
+        {this.props.room.table && 
           this.renderTableGroups()
         }
         {/* Show if user is dragging, is current player, has grabbed card, card comes from player */}
         {this.props.userIsDragging &&
-          (this.props.user.username === this.props.gameDb.currentPlayer) &&
-          (this.props.gameDb.currentPlayerHasGrabbedCard) &&
+          (this.props.user.username === this.props.room.currentPlayer) &&
+          (this.props.room.currentPlayerHasGrabbedCard) &&
           <div className="absolute flex items-stretch top-0 left-0 w-full h-full pt-2 px-2">
             <Container
               style={{width: '100%'}}
@@ -81,7 +81,7 @@ function mapStateToProps(state) {
   return {
     endpoint: state.endpoint,
     gameId: state.gameId,
-    gameDb: state.gameDb,
+    room: state.room,
     connectedUsers: state.connectedUsers,
     user: state.user,
     isTableActive: state.isTableActive,

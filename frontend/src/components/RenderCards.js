@@ -69,19 +69,21 @@ class RenderCards extends Component {
     const card = this.props.savedCard
     let currentCards = this.props.cards.slice()
 
+    console.log('removedIndex:', removedIndex, 'addedIndex:', addedIndex)
+
     // stop if not removed or added to this group
     if (removedIndex === null && addedIndex === null) { return false }
 
     // if card removed from players hand and NOT added
     if (removedIndex !== null && addedIndex === null) { 
-      if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+      if (this.props.room.currentPlayer !== this.props.user.username || !this.props.room.currentPlayerHasGrabbedCard) { return false }
       this.props.sendToServer('remove card from player hand', {card})
       return false
     }
 
     // if card added to players hand and NOT removed
     if (addedIndex !== null && removedIndex === null) { 
-      if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+      if (this.props.room.currentPlayer !== this.props.user.username || !this.props.room.currentPlayerHasGrabbedCard) { return false }
       this.props.sendToServer('add card to player hand', {card, addedIndex})
       currentCards.splice(addedIndex, 0, card)
       return false
@@ -131,9 +133,9 @@ class RenderCards extends Component {
   handleTableGroupDropReady(id, e) {
     const removedIndex = e.removedIndex
 
-    const groupIndex = this.props.gameDb.table.findIndex(group => group.id === id)
+    const groupIndex = this.props.room.table.findIndex(group => group.id === id)
 
-    let newGroup = {...this.props.gameDb.table[groupIndex]}
+    let newGroup = {...this.props.room.table[groupIndex]}
     let draggedCard = newGroup.cards[removedIndex]
     
     // save card to state
@@ -151,11 +153,11 @@ class RenderCards extends Component {
     const addedIndex = e.addedIndex
     const card = this.props.savedCard
 
-    if (this.props.gameDb.currentPlayer !== this.props.user.username || !this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+    if (this.props.room.currentPlayer !== this.props.user.username || !this.props.room.currentPlayerHasGrabbedCard) { return false }
     if (addedIndex === null && removedIndex === null) { return false }
-    const groupIndex = this.props.gameDb.table.findIndex(group => group.id === id)
+    const groupIndex = this.props.room.table.findIndex(group => group.id === id)
 
-    let newGroup = {...this.props.gameDb.table[groupIndex]}
+    let newGroup = {...this.props.room.table[groupIndex]}
     let newGroupCards = newGroup.cards
 
     if (removedIndex >= 0 && addedIndex === null) {
@@ -175,7 +177,7 @@ class RenderCards extends Component {
       // add card to new place
       newGroupCards.splice(addedIndex, 0, card)
 
-      let thisTable = this.props.gameDb.table.slice()
+      let thisTable = this.props.room.table.slice()
       thisTable[groupIndex].cards = newGroupCards
 
       this.props.dispatch({
@@ -202,8 +204,8 @@ class RenderCards extends Component {
 
   showUngrabbed() {
 
-    if (this.props.gameDb.currentPlayer === this.props.user.username) {
-      if (this.props.gameDb.currentPlayerHasGrabbedCard) {
+    if (this.props.room.currentPlayer === this.props.user.username) {
+      if (this.props.room.currentPlayerHasGrabbedCard) {
         return false
       } else {
         return true
@@ -236,7 +238,7 @@ class RenderCards extends Component {
           />
       case 'other players':
         const cardsLength = this.props.cards.length
-        const showCardValue = this.props.gameDb.currentRoundEnded
+        const showCardValue = this.props.room.currentRoundEnded
 
         return this.props.cards.map((card, i) => {
           let showCardsLength = showCardValue ? card.value : 0
@@ -293,6 +295,7 @@ class RenderCards extends Component {
         if (!!this.props.cards) {
           const numberOfCards = this.props.cards.length
           const maxWidth = 100/numberOfCards + '%'
+
           return (
             <Container style={{
                 display: 'flex',
@@ -330,7 +333,7 @@ class RenderCards extends Component {
 function mapStateToProps(state) {
   return {
     user: state.user,
-    gameDb: state.gameDb,
+    room: state.room,
     savedCard: state.savedCard,
     toGroup: state.toGroup,
     fromGroup: state.fromGroup,

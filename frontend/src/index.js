@@ -27,43 +27,24 @@ import Welcome from './components/Welcome'
 
 // define initial state 
 const initialState = {
-  endpoint: '43fd8dd8.ngrok.io/game',
-  gameId: '',
-  connectedUsers: [],
-  gameDb: {
-    gameId: '',
+  endpoint: 'localhost:4001/game',
+  room: {
+    name: '',
     deck: [], // initial cards
     stock: [], // remaining cards for play
     discard: [],
     totalRounds: 6,
     currentRound: 1,
+    rounds: [],
     direction: '', // clockwise/counterclockwise
     startingPlayer: '',
-    currentPlayerTurn: '',
+    currentPlayer: '',
     table: [], // stores array of cards on table
-    players: [ // keeps track of players and events
-      {
-        id: '',
-        socketId: '',
-        username: '',
-        hand: [],
-        buys: 6,
-        totalPoints: 0,
-        isOnline: true,
-        events: [
-          {
-            roundNumber: 1, // number of the round
-            buys: 0, // how many buys in this round
-            points: 0 // if 0, player cut in this round
-          }
-        ]
-      }
-    ]
+    connectedUsers: [],
+    players: [] // keeps track of players and events
   },
   user: {
-    socketId: '',
-    username: '',
-    cards: 0
+    username: ''
   },
   userIsDragging: false,
   savedCard: 'none',
@@ -92,24 +73,31 @@ function reducer(state = initialState, action) {
     case 'UPDATE_GAME':
       return {
         ...state,
-        gameDb: action.value
+        room: action.value
       }
     case 'UPDATE_USER_INFO':
       return {
         ...state,
-        user: {
-          ...state.user,
-          id: action.id || state.user.id,
-          username: action.username || state.user.username,
-          isOnline: action.isOnline || state.user.isOnline,
-          hand: action.hand || state.hand
+        room: { 
+          ...state.room,
+          players: state.room.players.map(player => player.name === action.username ?
+              {...player, hand: action.hand} : player
+            )
         }
-      }
+        }
+        // user: {
+        //   ...state.user,
+        //   id: action.id || state.user.id,
+        //   username: action.username || state.user.username,
+        //   isOnline: action.isOnline || state.user.isOnline,
+        //   hand: action.hand || state.hand
+        // }
+        // }
     case 'UPDATE_TABLE':
       return {
         ...state,
-        gameDb: {
-          ...state.gameDb,
+        room: {
+          ...state.room,
           table: action.table
         }
       }

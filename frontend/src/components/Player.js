@@ -5,7 +5,8 @@ import RenderCards from './RenderCards'
 function Player(props) {
   const isCurrentPlayer = props.currentPlayer === props.user.username
 
-  // const isBuyButtonDisabled = 
+  const userIndex = props.room.players.findIndex(player => player.name === props.user.username)
+  const userHand = props.room.players[userIndex].hand
 
   return (
     <div className="relative inline-flex flex-col items-start p-2">
@@ -20,7 +21,7 @@ function Player(props) {
       </div>
       <div>
         <RenderCards
-          cards={props.user.hand}
+          cards={userHand}
           location='user'
           onClick={props.handleCardClick}
           handleHandUpdate={props.handleHandUpdate}

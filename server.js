@@ -2,13 +2,16 @@ const express = require('express')
 const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
+const mongodb = require('mongodb')
+const ObjectID = mongodb.ObjectID
 const fs = require('fs')
+const _ = require('lodash')
 
 const tools = require('./helpers/tools.js')
 const dbTools = require('./helpers/dbTools.js')
 
 // our localhost port
-const port = 4001
+const port = process.env.PORT || 4001
 
 // Serve frontend
 app.use(express.static(__dirname + '/frontend/build/'));
@@ -20,69 +23,106 @@ app.get('/*', (req, res) => {
 
 
 
+
+
+
+
+
+
+
+var ROOMS_COLLECTION = 'rooms'
+
+// Start Db connection
+let telefunkenDb = {}
+mongodb.MongoClient.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/Telefunken', {useUnifiedTopology: true}, function(err, client) {
+  if (err) {
+    console.log(err)
+    process.exit(1)
+  }
+
+  telefunkenDb = client.db()
+  console.log('Database connection ready!')
+
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // on game start
-const initNewGame = function(gameId) {
-  let thisGameDb = dbTools.getGameDb(gameId)
-  
-  // set game deck and stock
-  dbTools.setGameDb(gameId, {stock: tools.getDeck(2)})
-  thisGameDb = dbTools.getGameDb(gameId)
+const initNewGame = function(roomId) {
 
-  // put 3 cards on discard pile
-  const result = dbTools.getCardsFromStock(gameId, 3)
+  const cardsToPlayer = (deck, n) => {
+    const cards = deck.splice(deck.length - n, n)
+    return cards
+  }
 
-  console.log('init currentRound:', thisGameDb.currentRound)
-  const setRoundNumber = thisGameDb.currentRound ? thisGameDb.currentRound + 1 : 1
+  telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+    name: roomId
+  }).then(roomObject => {
 
-  console.log('thisGameDb.currentRound:', thisGameDb.currentRound)
+    // make new deck
+    roomObject.stock = tools.getDeck(2)
 
-  dbTools.setGameDb(gameId, {
-    stock: result.newStock,
-    discard: result.cards,
-    currentRound: setRoundNumber,
-    currentTurn: 1
-  })
-  thisGameDb = dbTools.getGameDb(gameId)
+    // grab 3 cards for discard
+    roomObject.discard = roomObject.stock.splice(roomObject.stock.length - 3, 3)
 
-  // give cards to players
-  for (i in thisGameDb.players) {
-    const thisUsername = thisGameDb.players[i].username
-    const result = dbTools.getCardsFromStock(gameId, 11)
+    // set new round
+    roomObject.rounds.push({
+      roundHasEnded: false,
+      currentTurn: 1,
+      playerPoints: []
+    })
 
-    dbTools.setGameDb(gameId, {
-      stock: result.newStock,
-      player: {
-        username: thisUsername,
-        hand: result.cards
+    const players = roomObject.connectedUsers.map(user => {
+      // add player info to this round
+      // roomObject.rounds.playerPoints.push({name: user.name, points: 0})
+
+      // put cards on player hand
+      user.hand = cardsToPlayer(roomObject.stock, 11)
+      return user
+    })
+
+    // put users on players 
+    roomObject.players = players
+    // remove connected users
+    roomObject.connectedUsers = []
+
+    // set game has started
+    roomObject.gameHasStarted = true
+
+    // set first player randomly
+    const firstPlayer = tools.shuffle(players)[Math.floor(Math.random() * ((players.length - 1) - 0 + 1) + 0)].name
+    roomObject.firstPlayer = firstPlayer
+    roomObject.currentPlayer = firstPlayer
+
+    // set roomObject for mongo
+    const updatedRoom = { $set: roomObject }
+
+    telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+      name: roomId
+    }, updatedRoom, function(err, doc) {
+      if (err)  {
+        // TODO: error message
+        game.to(roomId).emit('error')
+      } else {
+        // update game to users
+        sendGameInfo(roomId)
       }
     })
-  }
-
-  if (thisGameDb.currentRound === 1) {
-    // if it's the first round assign first player randomly
-    let newPlayersArray = tools.shuffle(thisGameDb.players)
-    dbTools.setGameDb(gameId, {
-      firstPlayer: newPlayersArray[0].username,
-      currentPlayer: newPlayersArray[0].username
-    })
-  } else {
-    // if it's a different round, select player next to the first
-    let nextPlayerPreIndex = thisGameDb.players.findIndex(player => (player.username === thisGameDb.firstPlayer)) + 1
-
-    if (nextPlayerPreIndex > thisGameDb.players.length - 1) {
-      nextPlayerIndex = 0
-    } else {
-      nextPlayerIndex = nextPlayerPreIndex
-    }
-
-    const nextPlayer = thisGameDb.players[nextPlayerIndex].username
-
-    dbTools.setGameDb(gameId, {
-      firstPlayer: nextPlayer,
-      currentPlayer: nextPlayer
-    })
-  }
-
+  })
 }
 
 // new game turn
@@ -175,8 +215,8 @@ const handleBuying = (gameId, username) => {
 
   currentGameDb = dbTools.getGameDb(gameId)
 
-  sendUserInfo(gameId, currentGameDb, username)
-  sendGameInfo(gameId, currentGameDb) 
+  //sendUserInfo(gameId, username)
+  //sendGameInfo(gameId, currentGameDb) 
 }
 
 
@@ -214,62 +254,99 @@ console.log('-------------------------------')
 // set namespace 'game'
 const game = io.of('/game')
 
-
-
-
-
-
-
-
 // HELPER: send user info
-const sendUserInfo = function(gameId, gameDb, username) {
-  for (i in gameDb.players) {
-    if (gameDb.players[i].username === username) {
-      game.to(gameId).emit('updateUserInfo', gameDb.players[i])
-    }
-  }
-}
+// const sendUserInfo = function(gameId, username) {
+//   telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+//     name: gameId
+//   }).then((gameDb) => {
+//     for (i in gameDb.players) {
+//       if (gameDb.players[i].username === username) {
+//         game.to(gameId).emit('updateUserInfo', gameDb.players[i])
+//       }
+//     }
+//   })
+// }
 
 // HELPER: send user info to each user
-const sendEachUserInfo = function(gameId, gameDb, username) {
-  for (i in gameDb.players) {
-    game.to(gameDb.players[i].socketId).emit('updateUserInfo', gameDb.players[i])
-  }
-}
+// const sendEachUserInfo = function(gameId, gameDb, username) {
+//   for (i in gameDb.players) {
+//     game.to(gameDb.players[i].socketId).emit('updateUserInfo', gameDb.players[i])
+//   }
+// }
 
 // HELPER: Send game info to all
-const sendGameInfo = function(gameId, gameDb) {
-  let thisGamePublicDb = gameDb
+const sendGameInfo = function(roomId) {
+  telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+    name: roomId
+  }).then((gameDb) => {
+    if (gameDb.currentRoundEnded) {
+      console.log('########### SEND EVERYTHING')
+      const thisGameDb = _.cloneDeep(gameDb)
 
-  // Hide stock cards value
-  thisGamePublicDb.stock = gameDb.stock.length
+      thisGameDb.stock = gameDb.stock.length
+      game.to(roomId).emit('updateGame', thisGameDb)
+      return false
+    }
 
-  // hide first 2 discard pile cards value
-  if (!thisGamePublicDb.hiddenCardsWereBought && thisGamePublicDb.discard.length > 1) {
-    thisGamePublicDb.discard[0].value = null
-    thisGamePublicDb.discard[0].suit = null
-    thisGamePublicDb.discard[1].value = null
-    thisGamePublicDb.discard[1].suit = null
-  }
+    if (!!gameDb.players.length) {
+      for (let i in gameDb.players) {
+        const thisGameDb = _.cloneDeep(gameDb)
+        const thisUserName = gameDb.players[i].name
 
-  const sendEverything = gameDb.currentRoundEnded
+        // hide stock cards value
+        thisGameDb.stock = gameDb.stock.length
 
-  if (sendEverything) {
-    console.log('########### SEND EVERYTHING')
-    game.to(gameId).emit('updateGame', gameDb)
-  } else {
+        // hide first 2 discard pile cards value
+        if (!thisGameDb.hiddenCardsWereBought && thisGameDb.discard.length > 1) {
+          thisGameDb.discard[0].value = null
+          thisGameDb.discard[0].suit = null
+          thisGameDb.discard[1].value = null
+          thisGameDb.discard[1].suit = null
+        }
 
-    console.log('########### SEND not EVERYTHING')
-    // Hide players hand cards
-    for (i in thisGamePublicDb.players) {
-      for (h in thisGamePublicDb.players[i].hand) {
-        thisGamePublicDb.players[i].hand[h].value = null
-        thisGamePublicDb.players[i].hand[h].suit = null
+        // Hide players hand cards
+        for (let p in thisGameDb.players) {
+          if (thisGameDb.players[i].name !== thisGameDb.players[p].name) {
+            for (h in thisGameDb.players[p].hand) {
+              thisGameDb.players[p].hand[h].value = null
+              thisGameDb.players[p].hand[h].suit = null
+            }
+          }
+        }
+
+        console.log('########### SEND not EVERYTHING')
+        game.to(thisGameDb.players[i].socketId).emit('updateGame', thisGameDb)
       }
     }
 
-    game.to(gameId).emit('updateGame', thisGamePublicDb)
-  }
+    if (!!gameDb.connectedUsers.length) {
+      for (let i in gameDb.connectedUsers) {
+        const thisGameDb = _.cloneDeep(gameDb)
+
+        // hide stock cards value
+        thisGameDb.stock = gameDb.stock.length
+
+        // hide first 2 discard pile cards value
+        if (!thisGameDb.hiddenCardsWereBought && thisGameDb.discard.length > 1) {
+          thisGameDb.discard[0].value = null
+          thisGameDb.discard[0].suit = null
+          thisGameDb.discard[1].value = null
+          thisGameDb.discard[1].suit = null
+        }
+
+        // Hide players hand cards
+        for (let p in thisGameDb.players) {
+          for (h in thisGameDb.players[p].hand) {
+            thisGameDb.players[p].hand[h].value = null
+            thisGameDb.players[p].hand[h].suit = null
+          }
+        }
+
+        console.log('########### SEND not EVERYTHING')
+        game.to(thisGameDb.connectedUsers[i].socketId).emit('updateGame', thisGameDb)
+      }
+    }
+  })
 }
 
 
@@ -279,36 +356,158 @@ const sendGameInfo = function(gameId, gameDb) {
 
 // on Init connection to game
 game.on('connection', function(socket) {
-  console.log('user connected')
+  console.log('user connected:', socket.id)
 
   let thisGameId = socket.handshake.query.gameId
 
-  // create empty room in DB if it doesn't exist
-  dbTools.setGameDb(thisGameId)
+  // set newRoom defaults
+  const newRoom = {
+    createDate: new Date(),
+    name: thisGameId,
+    game: 'telefunken',
+    gameHasStarted: false,
+    direction: 'clockwise',
+    totalRounds: 6,
+    connectedUsers: [],
+    deck: [], // TODO: Put cards here
+    stock: [],
+    discard: [],
+    hiddenCardsWereBought: false,
+    table: [],
+    rounds: [],
+    players: [],
+    firstPlayer: '',
+    currentPlayer: '',
+    currentPlayerHasGrabbedCard: false,
+    playerWantsToBuy: '',
+    playerWantsItBefore: '',
+    playerHasBought: false,
+  }
 
-  // Log all connected clients to socket
-  //const socketClients = io.sockets.sockets
+  // check if room exists
+  const doesRoomExist = async () => {
+    const response = await telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: thisGameId
+    })
 
-  // Join specific room
+    return !!response
+  }
+
+  doesRoomExist().then((response) => {
+    roomExists = !!response
+
+    if (roomExists) {
+      // TODO: this doesn't do nothing
+      // TODO: make a standard message/error sending method?
+      game.to(thisGameId).emit('room already exists')
+
+    } else {
+      if (!thisGameId) {
+        // TODO: this doesn't do nothing
+        // TODO: make a standard message/error sending method?
+        game.to(thisGameId).emit('please insert name')
+
+      } else {
+        telefunkenDb.collection(ROOMS_COLLECTION).insertOne(newRoom, function(err, doc) {
+          if (err) {
+            game.to(thisGameId).emit('failed to create room')
+          }
+        })
+      }
+    }
+  })
+
+  // socket join room
   socket.join(thisGameId)
 
 
 
 
+
+
+
+
+
   // user login
-  socket.on('login', function(gameId, username) {
-    let thisGameDb = dbTools.getGameDb(thisGameId)
-    console.log('user:', username, 'login to:', gameId)
+  socket.on('login', function(roomId, username) {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then((gameDb) => {
 
-    // Set player
-    dbTools.setGameDb(thisGameId, {player: {username: username, socketId: socket.id, isOnline: true}})
-    thisGameDb = dbTools.getGameDb(thisGameId)
+      const userAlreadyPlaying = () => {
+        for (let i in gameDb.players) {
+          if (gameDb.players[i].name === username) {
+            return gameDb.players[i]
+          }
+        }
+      }
 
-    // Send saved user info
-    sendUserInfo(gameId, thisGameDb, username)
+      const arrayFilters = { arrayFilters: [ { 'element.name': username } ], upsert: true }
 
-    // Send connected users info
-    sendGameInfo(gameId, thisGameDb)
+      if (!!userAlreadyPlaying()) {
+        const thisUser = userAlreadyPlaying()
+        thisUser.socketId = socket.id
+        thisUser.isOnline = true
+
+        const pushDoc = { $push: { players: thisUser } }
+        const updateDoc = { $set: { 'players.$[element]': thisUser } }
+
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: roomId,
+          'players.name': { $ne: username }
+        }, pushDoc, function(err, doc) {
+          if (err)  {
+            // TODO: error message
+            game.to(thisGameId).emit('error')
+          } else {
+            if (doc.result.nModified === 0) {
+              updateUser(updateDoc)
+            } else {
+              sendGameInfo(roomId)
+            }
+          }
+        })
+      } else {
+        const newUser = {
+          name: username,
+          socketId: socket.id,
+          isOnline: true
+        }
+
+        const pushDoc = { $push: { connectedUsers: newUser } }
+        const updateDoc = { $set: { 'connectedUsers.$[element]': newUser } }
+
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: roomId,
+          'connectedUsers.name': { $ne: username }
+        }, pushDoc, function(err, doc) {
+          if (err)  {
+            // TODO: error message
+            game.to(thisGameId).emit('error')
+          } else {
+            if (doc.result.nModified === 0) {
+              updateUser(updateDoc)
+            } else {
+              sendGameInfo(roomId)
+            }
+          }
+        })
+      }
+
+      // happens if user exists
+      const updateUser = (doc) => {
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: roomId
+        }, doc, arrayFilters, function(err, doc) {
+          if (err)  {
+            // TODO: error message
+            game.to(thisGameId).emit('error')
+          } else {
+            sendGameInfo(roomId)
+          }
+        })
+      }
+    })
   })
 
 
@@ -318,12 +517,8 @@ game.on('connection', function(socket) {
 
   // start game
   socket.on('start game', function(gameId, username) {
-    initNewGame(thisGameId)
-
-    const thisGameDb = dbTools.getGameDb(gameId)
-
-    sendEachUserInfo(gameId, thisGameDb)
-    sendGameInfo(gameId, thisGameDb)
+    console.log('on start game, gameId:', gameId)
+    initNewGame(gameId)
   })
 
   socket.on('card from stock to user', function(gameId, username) {
@@ -348,8 +543,8 @@ game.on('connection', function(socket) {
 
     thisGameDb = dbTools.getGameDb(gameId)
 
-    sendUserInfo(gameId, thisGameDb, username)
-    sendGameInfo(gameId, thisGameDb)
+    //sendUserInfo(gameId, username)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
   socket.on('card from user to discard', function(gameId, username, card) {
@@ -379,34 +574,58 @@ game.on('connection', function(socket) {
 
     thisGameDb = dbTools.getGameDb(gameId)
 
-    // sendUserInfo(gameId, thisGameDb, username)
-    sendGameInfo(gameId, thisGameDb)
+    // //sendUserInfo(gameId, username)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
-  socket.on('update user hand', function(gameId, username, hand) {
-    let thisGameDb = dbTools.getGameDb(gameId)
-    let numberOfMatches = 0
-    for (let p in thisGameDb.players) {
-      if (thisGameDb.players[p].username === username) {
-        for (let card in hand) {
-          for (let serverCard in thisGameDb.players[p].hand) {
-            if (hand[card].id === thisGameDb.players[p].hand[serverCard].id) {
-              numberOfMatches += 1
-            } 
+  socket.on('update user hand', function(roomId, username, hand) {
+    console.log('is upddtaing hand')
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then((gameDb) => {
+    console.log('is upddtaing hand2')
+
+      let numberOfMatches = 0
+      for (let p in gameDb.players) {
+        if (gameDb.players[p].username === username) {
+          for (let card in hand) {
+            for (let serverCard in gameDb.players[p].hand) {
+              if (hand[card].id === gameDb.players[p].hand[serverCard].id) {
+                numberOfMatches += 1
+              } 
+            }
           }
         }
       }
-    }
-    
-    const handLength = hand.length
-    if (handLength === numberOfMatches) {
-      dbTools.setGameDb(gameId, {
-        player: {
-          username: username,
-          hand: hand
-        }
-      })
-    }
+      
+      const handLength = hand.length
+    console.log('handLength:', handLength)
+    console.log('numberOfMatches:', numberOfMatches)
+      if (handLength === numberOfMatches) {
+    console.log('is upddtaing hand3')
+
+        const thisUserIndex = gameDb.players.findIndex(player => player.name === username)
+        const updatedUser = gameDb.players[thisUserIndex]
+        updatedUser[hand] = hand
+
+        const updateDoc = { $set: { 'players.$[element]': updatedUser } }
+        const arrayFilters = { arrayFilters: [ { 'element.name': username } ] }
+
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: roomId
+        }, updatedRoom, function(err, doc) {
+    console.log('is upddtaing hand4')
+
+          if (err)  {
+            // TODO: error message
+            game.to(roomId).emit('error')
+          } else {
+            // update game to users
+            sendGameInfo(roomId)
+          }
+        })
+      }
+    })
   })
 
   socket.on('update table', function(gameId, table) {
@@ -415,7 +634,7 @@ game.on('connection', function(socket) {
     })
 
     thisGameDb = dbTools.getGameDb(gameId)
-    sendGameInfo(gameId, thisGameDb)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
 
@@ -438,8 +657,8 @@ game.on('connection', function(socket) {
       table: thisGameDb.table
     })
 
-    sendUserInfo(gameId, thisGameDb, username)
-    sendGameInfo(gameId, thisGameDb)
+    //sendUserInfo(gameId, username)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
   socket.on('remove card from group', function(gameId, username, content) {
@@ -469,7 +688,7 @@ game.on('connection', function(socket) {
     }
 
     thisGameDb = dbTools.getGameDb(gameId)
-    sendGameInfo(gameId, thisGameDb)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
   socket.on('add card to group', function(gameId, username, content) {
@@ -487,7 +706,7 @@ game.on('connection', function(socket) {
       }
     })
 
-    sendGameInfo(gameId, thisGameDb)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
 
@@ -507,8 +726,8 @@ game.on('connection', function(socket) {
       }
     })
 
-    sendUserInfo(gameId, thisGameDb, username)
-    sendGameInfo(gameId, thisGameDb)
+    //sendUserInfo(gameId, username)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
   socket.on('add card to player hand', function(gameId, username, content) {
@@ -526,8 +745,8 @@ game.on('connection', function(socket) {
       }
     })
 
-    sendUserInfo(gameId, thisGameDb, username)
-    sendGameInfo(gameId, thisGameDb)
+    //sendUserInfo(gameId, username)
+    //sendGameInfo(gameId, thisGameDb)
   })
 
   socket.on('player buys', function(gameId, username) {
@@ -591,8 +810,8 @@ game.on('connection', function(socket) {
 
     const newGameDb = dbTools.getGameDb(gameId)
 
-    sendEachUserInfo(gameId, newGameDb)
-    sendGameInfo(gameId, newGameDb)
+    // sendEachUserInfo(gameId, newGameDb)
+    // sendGameInfo(gameId, newGameDb)
   })
 
 
@@ -606,31 +825,52 @@ game.on('connection', function(socket) {
 
 
   socket.on('disconnect', function() {
-    thisGameDb = JSON.parse(fs.readFileSync('db/' + thisGameId + '.js', 'utf8'))
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: thisGameId
+    }).then((gameDb) => {
 
-    const doesUserExist = () => {
-      let userExists = false
-      for (i in thisGameDb.players) {
-        if (thisGameDb.players[i].socketId === socket.id) {
-          userExists = i 
+      const userAlreadyPlaying = () => {
+        for (let i in gameDb.players) {
+          if (gameDb.players[i].socketId === socket.id) {
+            return gameDb.players[i]
+          }
         }
       }
-      return userExists
-    }
 
-    const userIndex = doesUserExist()
+      if (!!userAlreadyPlaying()) {
+        console.log('disconnect, userAlreadyPlaying YES')
+        const updatedUser = userAlreadyPlaying()
+        updatedUser.isOnline = false
 
-      // console.log('happn disconnect 0')
-    // Set user as offline
-    // console.log(thisGameDb.players)
-      // console.log('happn disconnect 1')
-      // thisGameDb.players[userIndex].isOnline = false
+        const updateDoc = { $set: { 'players.$[element]': updatedUser } }
+        const arrayFilters = { arrayFilters: [ { 'element.socketId': socket.id } ], upsert: true }
 
-    fs.writeFileSync('db/' + thisGameId + '.js', JSON.stringify(thisGameDb), (err) => {})
-    sendGameInfo(thisGameId, thisGameDb)
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: thisGameId
+        }, updateDoc, arrayFilters, function(err, doc) {
+          if (err)  {
+            // TODO: hanlde error
+          } else {
+            sendGameInfo(thisGameId)
+          }
+        })
+      } else {
+        console.log('disconnect, userAlreadyPlaying NOT')
 
+        const updateDoc = { $pull: { 'connectedUsers': { socketId: socket.id } } }
+
+        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+          name: thisGameId
+        }, updateDoc, function(err, doc) {
+          if (err)  {
+            // TODO: hanlde error
+          } else {
+            sendGameInfo(thisGameId)
+          }
+        })
+      }
+    })
   })
-
 })
 
 
