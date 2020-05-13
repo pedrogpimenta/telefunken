@@ -229,12 +229,13 @@ class RenderCards extends Component {
                 orientation='horizontal'
                 groupName='droppable'
                 dragBeginDelay={0}
-                onDragStart={(e) => {this.handleTableGroupDragStart(this.props.index, e)}}
-                onDragEnd={(e) => {this.handleTableGroupDragEnd(this.props.index, e)}}
-                onDragEnter={(e) => {this.handleTableGroupDragEnter(this.props.index)}}
-                onDragLeave={(e) => {this.handleTableGroupDragLeave(this.props.index)}}
-                onDrop={(e) => {this.handleTableGroupDrop(this.props.id, e)}}
-                onDropReady={(e) => {this.handleTableGroupDropReady(this.props.id, e)}}
+                onDragStart={(e) => {this.handleCardDragStart(this.props.id, e)}}
+                onDragEnd={(e) => {this.handleCardDragEnd(this.props.id, e)}}
+                // onDragEnter={(e) => {this.handleTableGroupDragEnter(this.props.index)}}
+                // onDragLeave={(e) => {this.handleTableGroupDragLeave(this.props.index)}}
+                // onDrop={(e) => {this.handleTableGroupDrop(this.props.id, e)}}
+                onDrop={(e) => {this.props.handleCardDrop(this.props.id, e)}}
+                // onDropReady={(e) => {this.handleTableGroupDropReady(this.props.id, e)}}
               >
                 {this.props.cards.map((card, index) => (
                   <Draggable key={index} className="inline-flex">

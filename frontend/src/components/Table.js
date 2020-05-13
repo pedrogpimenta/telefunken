@@ -44,6 +44,7 @@ class Table extends Component {
         location='table'
         onClick={this.props.onClick}
         handleHandUpdate={(e) => this.props.handleHandUpdate(e)}
+        handleCardDrop={(location, e) => this.props.handleCardDrop(location, e)}
         handleTableUpdate={(e) => this.props.handleTableUpdate(e)}
         sendToServer={(action, content) => this.props.sendToServer(action, content)}
       />

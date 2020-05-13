@@ -753,14 +753,32 @@ game.on('connection', function(socket) {
 
         console.log('card:', card)
         console.log('hand1:', roomObject.players[playerIndex].hand)
+      } else {
+        const groupId = roomObject.table.findIndex(group => group.id === cardMovement.from)
+
+        card = roomObject.table[groupId].cards[cardMovement.fromPosition]
+        roomObject.table[groupId].cards.splice(cardMovement.fromPosition, 1)
+
+        if (roomObject.table[groupId].cards.length === 0) {
+          roomObject.table.splice(groupId, 1)
+        }
       }
 
       if (cardMovement.to === 'player') {
         roomObject.players[playerIndex].hand.splice(cardMovement.toPosition, 0, card)
-      }
-
-      if (cardMovement.to === 'discard') {
+      } else if (cardMovement.to === 'discard') {
         roomObject.discard.push(card)
+      } else if (cardMovement.to === 'table') {
+        const newGroup = {
+          id: tools.guidGenerator(),
+          cards: [card]
+        }
+    
+        roomObject.table.push(newGroup)
+      } else {
+        const groupId = roomObject.table.findIndex(group => group.id === cardMovement.to)
+
+        roomObject.table[groupId].cards.splice(cardMovement.toPosition, 0, card)
       }
 
       const updateDoc = { $set: roomObject }
