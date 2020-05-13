@@ -66,7 +66,7 @@ class Table extends Component {
               groupName='droppable'
               animationDuration={0}
               behaviour='drop-zone'
-              onDrop={(e) => {this.handleNewGroupDrop(e)}}
+              onDrop={(e) => {this.props.handleCardDrop('table', e)}}
             >
               <div className="inline-flex items-end justify-center border-2 border-dashed border-gray-400 rounded-lg w-full h-full z-0 p-2 text-gray-400 font-semibold text-xl">Drop to table</div>
             </Container>

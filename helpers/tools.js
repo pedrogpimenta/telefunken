@@ -48,5 +48,16 @@ module.exports = {
       return (((1+Math.random())*0x10000)|0).toString(16).substring(1)
     }
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4())
+  },
+
+  // get next player
+  getNextPlayer: function(players) {
+    for (let i in players) {
+      if ((Number(i) + 1) > (players.length - 1)) {
+        return 0
+      } else {
+        return Number(i) + 1
+      }
+    }
   }
 }

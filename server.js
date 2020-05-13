@@ -521,27 +521,53 @@ game.on('connection', function(socket) {
     initNewGame(gameId)
   })
 
-  socket.on('card from stock to user', function(gameId, username) {
-    let thisGameDb = dbTools.getGameDb(gameId)
+  socket.on('card from stock to user', function(roomId, username) {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      // stop if current player has already grabbed card
+      if (roomObject.currentPlayerHasGrabbedCard) { return false }
 
-    // stop if current player has already grabbed card
-    if (thisGameDb.currentPlayerHasGrabbedCard) { return false }
-
-    const result = dbTools.getCardsFromStock(gameId, 1)
-
-    const nextPlayerIndex = dbTools.nextPlayerIndex(gameId)
-    const nextPlayer = thisGameDb.players[nextPlayerIndex].username
-
-    dbTools.setGameDb(gameId, {
-      stock: result.newStock,
-      currentPlayerHasGrabbedCard: true,
-      player: {
-        username: username,
-        hand: result.cards
+      // helper: get cards from stock
+      const getCardsFromStock = (n) => {
+        const cards = roomObject.stock.splice(roomObject.stock.length - n, n)
+        return cards
       }
+
+      // add cards to player hand
+      const thisPlayerIndex = roomObject.players.findIndex(player => player.name === username)
+      roomObject.players[thisPlayerIndex].hand = roomObject.players[thisPlayerIndex].hand.concat(getCardsFromStock(1))
+
+      // disable further getting new cards
+      roomObject.currentPlayerHasGrabbedCard = true
+
+      // get next player
+      nextPlayerIndex = tools.getNextPlayer(roomObject.players)
+      roomObject.nextPlayer = roomObject.players[nextPlayerIndex].username
+
+      const updateDoc = { $set: roomObject }
+
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          sendGameInfo(roomId)
+        }
+      })
     })
 
-    thisGameDb = dbTools.getGameDb(gameId)
+    // dbTools.setGameDb(gameId, {
+    //   stock: result.newStock,
+    //   currentPlayerHasGrabbedCard: true,
+    //   player: {
+    //     username: username,
+    //     hand: result.cards
+    //   }
+    // })
+
+    // thisGameDb = dbTools.getGameDb(gameId)
 
     //sendUserInfo(gameId, username)
     //sendGameInfo(gameId, thisGameDb)
@@ -709,22 +735,66 @@ game.on('connection', function(socket) {
     //sendGameInfo(gameId, thisGameDb)
   })
 
+  socket.on('card movement', function(roomId, username, cardMovement) {
+    console.log('ya')
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      
+      console.log('movement from:', cardMovement.from)
+      console.log('movement from position:', cardMovement.fromPosition)
+
+      const playerIndex = roomObject.players.findIndex(player => player.name === username)
+      let card = {}
+
+      if (cardMovement.from === 'player') {
+        card = roomObject.players[playerIndex].hand[cardMovement.fromPosition]
+        roomObject.players[playerIndex].hand.splice(cardMovement.fromPosition, 1)
+
+        console.log('card:', card)
+        console.log('hand1:', roomObject.players[playerIndex].hand)
+      }
+
+      if (cardMovement.to === 'player') {
+        roomObject.players[playerIndex].hand.splice(cardMovement.toPosition, 0, card)
+      }
+
+      if (cardMovement.to === 'discard') {
+        roomObject.discard.push(card)
+      }
+
+      const updateDoc = { $set: roomObject }
+
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          console.log('sent')
+          sendGameInfo(roomId)
+        }
+      })
+    })
+
+
+  });
 
   socket.on('remove card from player hand', function(gameId, username, content) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+    // let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
-    const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
+    // const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
+    // const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
 
-    let newHand = thisGameDb.players[playerIndex].hand
-    newHand.splice(cardIndex, 1)
+    // let newHand = thisGameDb.players[playerIndex].hand
+    // newHand.splice(cardIndex, 1)
 
-    dbTools.setGameDb(gameId, {
-      playerRemoveCard: {
-        username: thisGameDb.players[playerIndex].username,
-        hand: newHand
-      }
-    })
+    // dbTools.setGameDb(gameId, {
+    //   playerRemoveCard: {
+    //     username: thisGameDb.players[playerIndex].username,
+    //     hand: newHand
+    //   }
+    // })
 
     //sendUserInfo(gameId, username)
     //sendGameInfo(gameId, thisGameDb)

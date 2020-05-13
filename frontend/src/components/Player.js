@@ -23,6 +23,7 @@ function Player(props) {
         <RenderCards
           cards={userHand}
           location='user'
+          handleCardDrop={(location, e) => props.handleCardDrop(location, e)}
           onClick={props.handleCardClick}
           handleHandUpdate={props.handleHandUpdate}
           sendToServer={(action, content) => props.sendToServer(action, content)}

@@ -149,6 +149,24 @@ function reducer(state = initialState, action) {
         playerWantsToBuy: action.value
       }
 
+    case 'MOVEMENT_INFO':
+      return {
+        ...state,
+        cardMovement: {
+          ...state.cardMovement,
+          from: action.from ?? state.cardMovement?.from,
+          to: action.to ?? state.cardMovement?.to,
+          fromPosition: action.fromPosition ?? state.cardMovement?.fromPosition,
+          toPosition: action.toPosition ?? state.cardMovement?.toPosition
+        }
+      }
+
+    case 'CLEAR_MOVEMENT_INFO':
+      return {
+        ...state,
+        cardMovement: null
+      }
+      
     default:
       return state;
   }

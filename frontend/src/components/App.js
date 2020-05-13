@@ -23,6 +23,7 @@ class App extends Component {
     this.handleHandUpdate = this.handleHandUpdate.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
     this.handleBuyButton = this.handleBuyButton.bind(this)
+    this.handleCardDrop = this.handleCardDrop.bind(this)
 
     this.renderHeader = this.renderHeader.bind(this)
     this.renderDiscardPile = this.renderDiscardPile.bind(this)
@@ -49,17 +50,12 @@ class App extends Component {
     if (cardType === 'stock') {
       if (this.props.room.currentPlayerHasGrabbedCard) { return false }
 
-      this.socket.emit('card from stock to user', this.props.room.gameId, this.props.user.username)
+      this.socket.emit('card from stock to user', this.props.room.name, this.props.user.username)
     }
   }
 
-  handleDiscardDrop(e) {
-    // stop if not dropped in discard
-    if (e.removedIndex === null && e.addedIndex === null) { return false }
-    // stop if user hasn't grabbed card
-    if (!this.props.room.currentPlayerHasGrabbedCard) { return false }
-    if (this.props.user.username !== this.props.room.currentPlayer) { return false }
-    this.socket.emit('card from user to discard', this.props.room.gameId, this.props.user.username, this.props.savedCard)
+  handleDiscardDrop(cardLocation, e) {
+
   }
 
   handleHandUpdate() {
@@ -90,6 +86,63 @@ class App extends Component {
   handleNewRoundButton() {
     console.log('new round!!')
     this.socket.emit('start new round', this.props.room.gameId)
+  }
+
+  handleCardDrop(cardLocation, e) {
+    const removedIndex = e?.removedIndex
+    const addedIndex = e?.addedIndex
+
+    console.log('card TO 1:', cardLocation)
+
+    // stop if not removed or added to this group
+    if (removedIndex === null && addedIndex === null) { return false }
+
+    // if card removed from and NOT added
+    if (removedIndex !== null && addedIndex === null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        fromPosition: removedIndex
+      }) 
+    }
+
+    // if card added to and NOT removed
+    if (addedIndex !== null && removedIndex === null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        to: cardLocation,
+        toPosition: addedIndex
+      }) 
+    }
+
+    // if card removed and added (moved inside players hand)
+    if (removedIndex === addedIndex) return false
+
+    if (removedIndex !== null && addedIndex !== null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        to: cardLocation,
+        fromPosition: removedIndex,
+        toPosition: addedIndex
+      }) 
+    }
+
+    console.log('this.props.cardMovement.fromPosition:', this.props.cardMovement?.fromPosition, 'this.props.cardMovement.toPosition:', this.props.cardMovement?.toPosition)
+    // this means FROM and TO are set, do DB things
+    if (this.props.cardMovement?.fromPosition >= 0 && this.props.cardMovement?.toPosition >= 0) {
+      console.log('oh')
+
+      console.log('sending:', this.props.cardMovement)
+
+      this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
+
+      // remove previous drop info
+      this.props.dispatch({
+        type: "CLEAR_MOVEMENT_INFO"
+      }) 
+    }
   }
 
   // ------------------- 
@@ -138,7 +191,7 @@ class App extends Component {
         groupName='droppable'
         animationDuration={0}
         behaviour='drop-zone'
-        onDrop={(e) => {this.handleDiscardDrop(e)}}
+        onDrop={(e) => {this.handleCardDrop('discard', e)}}
       >
         <div
           className={classes}
@@ -199,6 +252,7 @@ class App extends Component {
           <Table 
             handleTableUpdate={(e) => this.handleTableUpdate(e)}
             handleHandUpdate={(e) => this.handleHandUpdate(e)}
+            handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
             sendToServer={(action, content) => this.sendToServer(action, content)}
           />
         }
@@ -253,9 +307,10 @@ class App extends Component {
           key={this.props.user.username}
           user={this.props.user}
           room={this.props.room}
-          handleHandUpdate={(e) => this.handleHandUpdate(e)}
+          handleHandUpdate={e => this.handleHandUpdate(e)}
           currentPlayer={this.props.room.currentPlayer}
-          handleBuyButton={(e) => this.handleBuyButton(e)}
+          handleBuyButton={e => this.handleBuyButton(e)}
+          handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
           sendToServer={(action, content) => this.sendToServer(action, content)}
         />
         {this.renderBuyButton()}
@@ -339,8 +394,9 @@ function mapStateToProps(state) {
     user: state.user,
     isTableActive: state.isTableActive,
     savedCard: state.savedCard,
-    playerWantsToBuy: state.playerWantsToBuy
-  }
+    playerWantsToBuy: state.playerWantsToBuy,
+    cardMovement: state.cardMovement
+ }
 }
 
 export default connect(mapStateToProps)(withRouter(App))

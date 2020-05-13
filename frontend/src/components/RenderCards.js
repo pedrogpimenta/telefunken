@@ -9,10 +9,9 @@ class RenderCards extends Component {
 
     this.handleStockCardClick = this.handleStockCardClick.bind(this)
 
-    this.handlePlayerDropReady = this.handlePlayerDropReady.bind(this)
-    this.handlePlayerCardDrop = this.handlePlayerCardDrop.bind(this)
-    this.handleUserDragStart = this.handleUserDragStart.bind(this)
-    this.handleUserDragEnd = this.handleUserDragEnd.bind(this)
+    this.handleCardDropReady = this.handleCardDropReady.bind(this)
+    this.handleCardDragStart = this.handleCardDragStart.bind(this)
+    this.handleCardDragEnd = this.handleCardDragEnd.bind(this)
     this.handlePlayerDragEnter = this.handlePlayerDragEnter.bind(this)
     this.handlePlayerDragLeave = this.handlePlayerDragLeave.bind(this)
 
@@ -35,79 +34,39 @@ class RenderCards extends Component {
   // ------------------- 
 
   // player hand -- drag start
-  handleUserDragStart() {
+  handleCardDragStart(cardLocation, e) {
     this.props.dispatch({ type: 'USER_IS_DRAGGING' })
+
+    if ( !e.isSource ) { return false }
+
+    console.log('card FROM:', cardLocation)
+
+    this.props.dispatch({
+      type: 'MOVEMENT_INFO',
+      from: cardLocation
+    })
   }
 
   // player hand -- drag end
-  handleUserDragEnd() {
+  handleCardDragEnd() {
     this.props.dispatch({ type: 'USER_IS_NOT_DRAGGING' })
   }
 
   // player area -- right before drop
-  handlePlayerDropReady(index, e) {
-    const removedIndex = e.removedIndex
+  handleCardDropReady(index, e) {
+    // const removedIndex = e.removedIndex
 
-    // get current dragged card
-    let currentCards = this.props.cards.slice()
-    let draggedCard = currentCards[removedIndex]
+    // // get current dragged card
+    // let currentCards = this.props.cards.slice()
+    // let draggedCard = currentCards[removedIndex]
     
-    // save card to state
-    if (draggedCard) {
-      this.props.dispatch({
-        type: "SAVE_CARD",
-        card: draggedCard
-      })  
-    }
-  }
-
-  // player hand -- drop card
-  handlePlayerCardDrop(e) {
-    const removedIndex = e.removedIndex
-    const addedIndex = e.addedIndex
-    const fromGroup = this.props.fromGroup
-    const card = this.props.savedCard
-    let currentCards = this.props.cards.slice()
-
-    console.log('removedIndex:', removedIndex, 'addedIndex:', addedIndex)
-
-    // stop if not removed or added to this group
-    if (removedIndex === null && addedIndex === null) { return false }
-
-    // if card removed from players hand and NOT added
-    if (removedIndex !== null && addedIndex === null) { 
-      if (this.props.room.currentPlayer !== this.props.user.username || !this.props.room.currentPlayerHasGrabbedCard) { return false }
-      this.props.sendToServer('remove card from player hand', {card})
-      return false
-    }
-
-    // if card added to players hand and NOT removed
-    if (addedIndex !== null && removedIndex === null) { 
-      if (this.props.room.currentPlayer !== this.props.user.username || !this.props.room.currentPlayerHasGrabbedCard) { return false }
-      this.props.sendToServer('add card to player hand', {card, addedIndex})
-      currentCards.splice(addedIndex, 0, card)
-      return false
-    }
-
-    // if card moved inside players hand (removed and added)
-    if (removedIndex !== null && addedIndex !== null) { 
-      // remove card
-      currentCards.splice(removedIndex, 1)
-      // add card to new place
-      currentCards.splice(addedIndex, 0, card)
-
-      // save hand to state
-      this.props.dispatch({
-        type: "UPDATE_USER_INFO",
-        username: this.props.user.username,
-        id: this.props.user.id,
-        hand: currentCards 
-      }) 
-
-      // save hand on server
-      this.props.handleHandUpdate()
-      return false
-    }
+    // // save card to state
+    // if (draggedCard) {
+    //   this.props.dispatch({
+    //     type: "SAVE_CARD",
+    //     card: draggedCard
+    //   })  
+    // }
   }
 
   // player hand -- enter area
@@ -305,12 +264,12 @@ class RenderCards extends Component {
               orientation='horizontal'
               groupName='droppable'
               dragBeginDelay={0}
-              onDragStart={(e) => {this.handleUserDragStart('player', e)}}
-              onDragEnd={(e) => {this.handleUserDragEnd('player')}}
+              onDragStart={(e) => {this.handleCardDragStart('player', e)}}
+              onDragEnd={(e) => {this.handleCardDragEnd('player')}}
               onDragEnter={(e) => {this.handlePlayerDragEnter('player')}}
               onDragLeave={(e) => {this.handlePlayerDragLeave()}}
-              onDrop={(e) => {this.handlePlayerCardDrop(e)}}
-              onDropReady={(e) => {this.handlePlayerDropReady(this.props.index, e)}}
+              onDrop={(e) => {this.props.handleCardDrop('player', e)}}
+              onDropReady={(e) => {this.handleCardDropReady(this.props.index, e)}}
             >
               {this.props.cards.map((card, index) => (
                 <Draggable key={index} className="inline-flex" style={{maxWidth: maxWidth}}>
@@ -339,7 +298,8 @@ function mapStateToProps(state) {
     fromGroup: state.fromGroup,
     savedGroupToIndex: state.savedGroupToIndex,
     savedGroupFromIndex: state.savedGroupFromIndex,
-    savedGroupFromMinusOne: state.savedGroupFromMinusOne
+    savedGroupFromMinusOne: state.savedGroupFromMinusOne,
+    cardMovement: state.cardMovement
   }
 }
 
