@@ -51,12 +51,14 @@ module.exports = {
   },
 
   // get next player
-  getNextPlayer: function(players) {
+  getNextPlayer: function(players, currentPlayer) {
     for (let i in players) {
-      if ((Number(i) + 1) > (players.length - 1)) {
-        return 0
-      } else {
-        return Number(i) + 1
+      if (players[i].name === currentPlayer) {
+        if ((Number(i) + 1) > (players.length - 1)) {
+          return 0
+        } else {
+          return Number(i) + 1
+        }
       }
     }
   }

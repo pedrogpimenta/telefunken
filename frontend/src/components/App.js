@@ -20,7 +20,7 @@ class App extends Component {
     this.handleStartGameButton = this.handleStartGameButton.bind(this)
     this.handleCardClick = this.handleCardClick.bind(this)
     this.handleDiscardDrop = this.handleDiscardDrop.bind(this)
-    this.handleHandUpdate = this.handleHandUpdate.bind(this)
+    // this.handleHandUpdate = this.handleHandUpdate.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
     this.handleBuyButton = this.handleBuyButton.bind(this)
     this.handleCardDrop = this.handleCardDrop.bind(this)
@@ -58,12 +58,12 @@ class App extends Component {
 
   }
 
-  handleHandUpdate() {
-    const playerHand = this.props.room.players.map(player => {
-      if (player.name === this.props.user.username) { return player.hand }
-    })
-    this.socket.emit('update user hand', this.props.room.name, this.props.user.username, playerHand)
-  }
+  // handleHandUpdate() {
+  //   const playerHand = this.props.room.players.map(player => {
+  //     if (player.name === this.props.user.username) { return player.hand }
+  //   })
+  //   this.socket.emit('update user hand', this.props.room.name, this.props.user.username, playerHand)
+  // }
 
   handleTableUpdate() {
     this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
@@ -85,14 +85,14 @@ class App extends Component {
 
   handleNewRoundButton() {
     console.log('new round!!')
-    this.socket.emit('start new round', this.props.room.gameId)
+    this.socket.emit('start new round', this.props.room.name)
   }
 
   handleCardDrop(cardLocation, e) {
     const removedIndex = e?.removedIndex
     const addedIndex = e?.addedIndex
 
-    console.log('card TO 1:', cardLocation)
+    console.log('card dropped in:', cardLocation)
 
     // stop if not removed or added to this group
     if (removedIndex === null && addedIndex === null) { return false }
@@ -129,13 +129,8 @@ class App extends Component {
       }) 
     }
 
-    console.log('this.props.cardMovement.fromPosition:', this.props.cardMovement?.fromPosition, 'this.props.cardMovement.toPosition:', this.props.cardMovement?.toPosition)
     // this means FROM and TO are set, do DB things
     if (this.props.cardMovement?.fromPosition >= 0 && this.props.cardMovement?.toPosition >= 0) {
-      console.log('oh')
-
-      console.log('sending:', this.props.cardMovement)
-
       this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
 
       // remove previous drop info
@@ -177,6 +172,7 @@ class App extends Component {
   // render discard pile
   renderDiscardPile() {
     let hasHiddenCards = this.props.room.hiddenCardsWereBought ? 'noHiddenCards' : 'hasHiddenCards'
+    const willAcceptDrop = this.props.room.currentPlayer === this.props.user.username && this.props.room.currentPlayerHasGrabbedCard
 
     const classes = `inline-flex ${hasHiddenCards} rounded border-2 border-dashed border-gray-400`
 
@@ -188,7 +184,7 @@ class App extends Component {
           left: 0,
           marginLeft: '1rem'
         }}
-        groupName='droppable'
+        groupName={willAcceptDrop && 'droppable'}
         animationDuration={0}
         behaviour='drop-zone'
         onDrop={(e) => {this.handleCardDrop('discard', e)}}
@@ -251,7 +247,7 @@ class App extends Component {
         {!!this.props.room.gameHasStarted &&
           <Table 
             handleTableUpdate={(e) => this.handleTableUpdate(e)}
-            handleHandUpdate={(e) => this.handleHandUpdate(e)}
+            // handleHandUpdate={(e) => this.handleHandUpdate(e)}
             handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
             sendToServer={(action, content) => this.sendToServer(action, content)}
           />
@@ -307,7 +303,7 @@ class App extends Component {
           key={this.props.user.username}
           user={this.props.user}
           room={this.props.room}
-          handleHandUpdate={e => this.handleHandUpdate(e)}
+          // handleHandUpdate={e => this.handleHandUpdate(e)}
           currentPlayer={this.props.room.currentPlayer}
           handleBuyButton={e => this.handleBuyButton(e)}
           handleCardDrop={(location, e) => this.handleCardDrop(location, e)}

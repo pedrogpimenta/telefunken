@@ -25,7 +25,7 @@ function Player(props) {
           location='user'
           handleCardDrop={(location, e) => props.handleCardDrop(location, e)}
           onClick={props.handleCardClick}
-          handleHandUpdate={props.handleHandUpdate}
+          // handleHandUpdate={props.handleHandUpdate}
           sendToServer={(action, content) => props.sendToServer(action, content)}
         />
       </div>

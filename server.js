@@ -86,27 +86,42 @@ const initNewGame = function(roomId) {
       playerPoints: []
     })
 
-    const players = roomObject.connectedUsers.map(user => {
-      // add player info to this round
-      // roomObject.rounds.playerPoints.push({name: user.name, points: 0})
+    let players = []
 
-      // put cards on player hand
-      user.hand = cardsToPlayer(roomObject.stock, 11)
-      return user
-    })
+    if (!roomObject.players.length) {
+      players = roomObject.connectedUsers.map(user => {
+        // add player info to this round
+        // roomObject.rounds.playerPoints.push({name: user.name, points: 0})
+  
+        // put cards on player hand
+        user.hand = cardsToPlayer(roomObject.stock, 11)
+        return user
+      })
 
-    // put users on players 
-    roomObject.players = players
-    // remove connected users
-    roomObject.connectedUsers = []
+      // put users on players 
+      roomObject.players = players
+      // remove connected users
+      roomObject.connectedUsers = []
+
+      // set first player randomly
+      const firstPlayer = tools.shuffle(players)[Math.floor(Math.random() * ((players.length - 1) - 0 + 1) + 0)].name
+      roomObject.firstPlayer = firstPlayer
+      roomObject.currentPlayer = firstPlayer
+    } else {
+      roomObject.players = roomObject.players.map(user => {
+        // add player info to this round
+        // roomObject.rounds.playerPoints.push({name: user.name, points: 0})
+  
+        // put cards on player hand
+        user.hand = cardsToPlayer(roomObject.stock, 11)
+        return user
+      })
+      const nextPlayer = tools.getNextPlayer(players, roomObject.currentPlayer)
+      roomObject.currentPlayer = nextPlayer
+    }
 
     // set game has started
     roomObject.gameHasStarted = true
-
-    // set first player randomly
-    const firstPlayer = tools.shuffle(players)[Math.floor(Math.random() * ((players.length - 1) - 0 + 1) + 0)].name
-    roomObject.firstPlayer = firstPlayer
-    roomObject.currentPlayer = firstPlayer
 
     // set roomObject for mongo
     const updatedRoom = { $set: roomObject }
@@ -126,33 +141,31 @@ const initNewGame = function(roomId) {
 }
 
 // new game turn
-const setNewTurn = (gameId, newPlayer) => {
-  let thisGameDb = dbTools.getGameDb(gameId)
-  const currentPlayer = thisGameDb.currentPlayer
-  const currentTurn = thisGameDb.currentTurn
+// const setNewTurn = (gameId, newPlayer) => {
+//   let thisGameDb = dbTools.getGameDb(gameId)
+//   const currentPlayer = thisGameDb.currentPlayer
+//   const currentTurn = thisGameDb.currentTurn
 
-  const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
-  const prevPlayer = thisGameDb.currentPlayer
+//   const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
+//   const prevPlayer = thisGameDb.currentPlayer
 
-  dbTools.setGameDb(gameId, {
-    prevPlayer: prevPlayer,
-    currentPlayer: nextPlayer,
-    currentPlayerHasGrabbedCard: false,
-    currentTurn: currentTurn + 1,
-    aPlayerHasBoughtThisTurn: false,
-    someoneWantsItBefore: false
-  })
-}
+//   dbTools.setGameDb(gameId, {
+//     prevPlayer: prevPlayer,
+//     currentPlayer: nextPlayer,
+//     currentPlayerHasGrabbedCard: false,
+//     currentTurn: currentTurn + 1,
+//     aPlayerHasBoughtThisTurn: false,
+//     someoneWantsItBefore: false
+//   })
+// }
 
 // round ends
-const endThisRound = (gameId) => {
-  let thisGameDb = dbTools.getGameDb(gameId)
-  dbTools.setGameDb(gameId, {
-    currentRoundEnded: true
-  })
-
-  // let currentGameDb = {...dbTools.getGameDb(gameId)}
-}
+// const endThisRound = (gameId) => {
+//   let thisGameDb = dbTools.getGameDb(gameId)
+//   dbTools.setGameDb(gameId, {
+//     currentRoundEnded: true
+//   })
+// }
 
 // handle buying
 const handleBuying = (gameId, username) => {
@@ -510,11 +523,6 @@ game.on('connection', function(socket) {
     })
   })
 
-
-
-
-
-
   // start game
   socket.on('start game', function(gameId, username) {
     console.log('on start game, gameId:', gameId)
@@ -542,7 +550,7 @@ game.on('connection', function(socket) {
       roomObject.currentPlayerHasGrabbedCard = true
 
       // get next player
-      nextPlayerIndex = tools.getNextPlayer(roomObject.players)
+      nextPlayerIndex = tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)
       roomObject.nextPlayer = roomObject.players[nextPlayerIndex].username
 
       const updateDoc = { $set: roomObject }
@@ -557,183 +565,169 @@ game.on('connection', function(socket) {
         }
       })
     })
-
-    // dbTools.setGameDb(gameId, {
-    //   stock: result.newStock,
-    //   currentPlayerHasGrabbedCard: true,
-    //   player: {
-    //     username: username,
-    //     hand: result.cards
-    //   }
-    // })
-
-    // thisGameDb = dbTools.getGameDb(gameId)
-
-    //sendUserInfo(gameId, username)
-    //sendGameInfo(gameId, thisGameDb)
   })
 
-  socket.on('card from user to discard', function(gameId, username, card) {
-    let thisGameDb = dbTools.getGameDb(gameId)
+  // socket.on('card from user to discard', function(gameId, username, card) {
+  //   let thisGameDb = dbTools.getGameDb(gameId)
 
-    // let newPlayerHand = []
-    let newDiscard = thisGameDb.discard.slice()
+  //   // let newPlayerHand = []
+  //   let newDiscard = thisGameDb.discard.slice()
 
-    newDiscard.push(card)
+  //   newDiscard.push(card)
 
-    dbTools.setGameDb(gameId, {
-      discard: newDiscard
-    })
+  //   dbTools.setGameDb(gameId, {
+  //     discard: newDiscard
+  //   })
 
-    const thisPlayerIndex = thisGameDb.players.findIndex(player => player.username === username)
+  //   const thisPlayerIndex = thisGameDb.players.findIndex(player => player.username === username)
 
-    if (thisGameDb.players[thisPlayerIndex].hand.length === 0) {
-      endThisRound(gameId)
-    } else if (thisGameDb.players[thisPlayerIndex].hand.length === 1) {
-      if (thisGameDb.players[thisPlayerIndex].hand[0].id === card.id) {
-        endThisRound(gameId)
-      }
-    } else {
-      setNewTurn(gameId, username)
-    }
+  //   if (thisGameDb.players[thisPlayerIndex].hand.length === 0) {
+  //     endThisRound(gameId)
+  //   } else if (thisGameDb.players[thisPlayerIndex].hand.length === 1) {
+  //     if (thisGameDb.players[thisPlayerIndex].hand[0].id === card.id) {
+  //       endThisRound(gameId)
+  //     }
+  //   } else {
+  //     setNewTurn(gameId, username)
+  //   }
 
 
-    thisGameDb = dbTools.getGameDb(gameId)
+  //   thisGameDb = dbTools.getGameDb(gameId)
 
-    // //sendUserInfo(gameId, username)
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   // //sendUserInfo(gameId, username)
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
-  socket.on('update user hand', function(roomId, username, hand) {
-    console.log('is upddtaing hand')
-    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
-      name: roomId
-    }).then((gameDb) => {
-    console.log('is upddtaing hand2')
+  // socket.on('update user hand', function(roomId, username, hand) {
+  //   console.log('is upddtaing hand')
+  //   telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+  //     name: roomId
+  //   }).then((gameDb) => {
+  //   console.log('is upddtaing hand2')
 
-      let numberOfMatches = 0
-      for (let p in gameDb.players) {
-        if (gameDb.players[p].username === username) {
-          for (let card in hand) {
-            for (let serverCard in gameDb.players[p].hand) {
-              if (hand[card].id === gameDb.players[p].hand[serverCard].id) {
-                numberOfMatches += 1
-              } 
-            }
-          }
-        }
-      }
+  //     let numberOfMatches = 0
+  //     for (let p in gameDb.players) {
+  //       if (gameDb.players[p].username === username) {
+  //         for (let card in hand) {
+  //           for (let serverCard in gameDb.players[p].hand) {
+  //             if (hand[card].id === gameDb.players[p].hand[serverCard].id) {
+  //               numberOfMatches += 1
+  //             } 
+  //           }
+  //         }
+  //       }
+  //     }
       
-      const handLength = hand.length
-    console.log('handLength:', handLength)
-    console.log('numberOfMatches:', numberOfMatches)
-      if (handLength === numberOfMatches) {
-    console.log('is upddtaing hand3')
+  //     const handLength = hand.length
+  //   console.log('handLength:', handLength)
+  //   console.log('numberOfMatches:', numberOfMatches)
+  //     if (handLength === numberOfMatches) {
+  //   console.log('is upddtaing hand3')
 
-        const thisUserIndex = gameDb.players.findIndex(player => player.name === username)
-        const updatedUser = gameDb.players[thisUserIndex]
-        updatedUser[hand] = hand
+  //       const thisUserIndex = gameDb.players.findIndex(player => player.name === username)
+  //       const updatedUser = gameDb.players[thisUserIndex]
+  //       updatedUser[hand] = hand
 
-        const updateDoc = { $set: { 'players.$[element]': updatedUser } }
-        const arrayFilters = { arrayFilters: [ { 'element.name': username } ] }
+  //       const updateDoc = { $set: { 'players.$[element]': updatedUser } }
+  //       const arrayFilters = { arrayFilters: [ { 'element.name': username } ] }
 
-        telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
-          name: roomId
-        }, updatedRoom, function(err, doc) {
-    console.log('is upddtaing hand4')
+  //       telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+  //         name: roomId
+  //       }, updatedRoom, function(err, doc) {
+  //   console.log('is upddtaing hand4')
 
-          if (err)  {
-            // TODO: error message
-            game.to(roomId).emit('error')
-          } else {
-            // update game to users
-            sendGameInfo(roomId)
-          }
-        })
-      }
-    })
-  })
+  //         if (err)  {
+  //           // TODO: error message
+  //           game.to(roomId).emit('error')
+  //         } else {
+  //           // update game to users
+  //           sendGameInfo(roomId)
+  //         }
+  //       })
+  //     }
+  //   })
+  // })
 
-  socket.on('update table', function(gameId, table) {
-    dbTools.setGameDb(gameId, {
-      table: table
-    })
+  // socket.on('update table', function(gameId, table) {
+  //   dbTools.setGameDb(gameId, {
+  //     table: table
+  //   })
 
-    thisGameDb = dbTools.getGameDb(gameId)
-    //sendGameInfo(gameId, thisGameDb)
-  })
-
-
+  //   thisGameDb = dbTools.getGameDb(gameId)
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
 
 
 
 
-  socket.on('new group', function(gameId, username, content) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    const newGroup = {
-      id: tools.guidGenerator(),
-      cards: [content.card]
-    }
 
-    thisGameDb.table.push(newGroup)
+  // socket.on('new group', function(gameId, username, content) {
+  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    dbTools.setGameDb(gameId, {
-      table: thisGameDb.table
-    })
+  //   const newGroup = {
+  //     id: tools.guidGenerator(),
+  //     cards: [content.card]
+  //   }
 
-    //sendUserInfo(gameId, username)
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   thisGameDb.table.push(newGroup)
 
-  socket.on('remove card from group', function(gameId, username, content) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+  //   dbTools.setGameDb(gameId, {
+  //     table: thisGameDb.table
+  //   })
 
-    const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
+  //   //sendUserInfo(gameId, username)
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
-    let newGroupCards = thisGameDb.table[groupIndex].cards
-    newGroupCards.splice(content.removedIndex, 1)
+  // socket.on('remove card from group', function(gameId, username, content) {
+  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    const isGroupEmpty = !newGroupCards.length
+  //   const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
 
-    if (!isGroupEmpty) {
-      dbTools.setGameDb(gameId, {
-        group: {
-          id: thisGameDb.table[groupIndex].id,
-          cards: newGroupCards
-        }
-      })
-    } else {
-      const thisTable = thisGameDb.table.slice()
+  //   let newGroupCards = thisGameDb.table[groupIndex].cards
+  //   newGroupCards.splice(content.removedIndex, 1)
 
-      thisTable.splice(groupIndex, 1)
-      dbTools.setGameDb(gameId, {
-        table: thisTable
-      })
-    }
+  //   const isGroupEmpty = !newGroupCards.length
 
-    thisGameDb = dbTools.getGameDb(gameId)
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   if (!isGroupEmpty) {
+  //     dbTools.setGameDb(gameId, {
+  //       group: {
+  //         id: thisGameDb.table[groupIndex].id,
+  //         cards: newGroupCards
+  //       }
+  //     })
+  //   } else {
+  //     const thisTable = thisGameDb.table.slice()
 
-  socket.on('add card to group', function(gameId, username, content) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+  //     thisTable.splice(groupIndex, 1)
+  //     dbTools.setGameDb(gameId, {
+  //       table: thisTable
+  //     })
+  //   }
 
-    const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
+  //   thisGameDb = dbTools.getGameDb(gameId)
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
-    let newGroupCards = thisGameDb.table[groupIndex].cards
-    newGroupCards.splice(content.addedIndex, 0, content.card)
+  // socket.on('add card to group', function(gameId, username, content) {
+  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    dbTools.setGameDb(gameId, {
-      group: {
-        id: thisGameDb.table[groupIndex].id,
-        cards: newGroupCards
-      }
-    })
+  //   const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
 
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   let newGroupCards = thisGameDb.table[groupIndex].cards
+  //   newGroupCards.splice(content.addedIndex, 0, content.card)
+
+  //   dbTools.setGameDb(gameId, {
+  //     group: {
+  //       id: thisGameDb.table[groupIndex].id,
+  //       cards: newGroupCards
+  //     }
+  //   })
+
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
   socket.on('card movement', function(roomId, username, cardMovement) {
     console.log('ya')
@@ -768,6 +762,27 @@ game.on('connection', function(socket) {
         roomObject.players[playerIndex].hand.splice(cardMovement.toPosition, 0, card)
       } else if (cardMovement.to === 'discard') {
         roomObject.discard.push(card)
+
+        console.log(roomObject.players[playerIndex].hand.length)
+        if (roomObject.players[playerIndex].hand.length === 0) {
+          roomObject.currentRoundEnded = true
+          roomObject.prevPlayer = null
+        // } else if (roomObject.players[playerIndex].hand.length === 1) {
+        //   if (roomObject.players[playerIndex].hand[0].id === card.id) {
+        //     roomObject.currentRoundEnded = true
+        //   }
+        } else {
+          const currentTurn = roomObject.rounds[roomObject.rounds.length - 1].currentTurn
+          const nextPlayer = roomObject.players[tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)].name
+          const prevPlayer = roomObject.currentPlayer
+        
+          roomObject.prevPlayer = prevPlayer
+          roomObject.currentPlayer = nextPlayer
+          roomObject.currentPlayerHasGrabbedCard = false
+          roomObject.currentTurn = currentTurn + 1
+          roomObject.aPlayerHasBoughtThisTurn = false
+          roomObject.someoneWantsItBefore = false
+        }
       } else if (cardMovement.to === 'table') {
         const newGroup = {
           id: tools.guidGenerator(),
@@ -798,44 +813,44 @@ game.on('connection', function(socket) {
 
   });
 
-  socket.on('remove card from player hand', function(gameId, username, content) {
-    // let thisGameDb = {...dbTools.getGameDb(gameId)}
+  // socket.on('remove card from player hand', function(gameId, username, content) {
+  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    // const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
-    // const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
+  //   const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
+  //   const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
 
-    // let newHand = thisGameDb.players[playerIndex].hand
-    // newHand.splice(cardIndex, 1)
+  //   let newHand = thisGameDb.players[playerIndex].hand
+  //   newHand.splice(cardIndex, 1)
 
-    // dbTools.setGameDb(gameId, {
-    //   playerRemoveCard: {
-    //     username: thisGameDb.players[playerIndex].username,
-    //     hand: newHand
-    //   }
-    // })
+  //   dbTools.setGameDb(gameId, {
+  //     playerRemoveCard: {
+  //       username: thisGameDb.players[playerIndex].username,
+  //       hand: newHand
+  //     }
+  //   })
 
-    //sendUserInfo(gameId, username)
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   // sendUserInfo(gameId, username)
+  //   // sendGameInfo(gameId, thisGameDb)
+  // })
 
-  socket.on('add card to player hand', function(gameId, username, content) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+  // socket.on('add card to player hand', function(gameId, username, content) {
+  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
 
-    const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
+  //   const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
 
-    let newHand = thisGameDb.players[playerIndex].hand
-    newHand.splice(content.addedIndex, 0, content.card)
+  //   let newHand = thisGameDb.players[playerIndex].hand
+  //   newHand.splice(content.addedIndex, 0, content.card)
 
-    dbTools.setGameDb(gameId, {
-      player: {
-        username: thisGameDb.players[playerIndex].username,
-        hand: newHand
-      }
-    })
+  //   dbTools.setGameDb(gameId, {
+  //     player: {
+  //       username: thisGameDb.players[playerIndex].username,
+  //       hand: newHand
+  //     }
+  //   })
 
-    //sendUserInfo(gameId, username)
-    //sendGameInfo(gameId, thisGameDb)
-  })
+  //   //sendUserInfo(gameId, username)
+  //   //sendGameInfo(gameId, thisGameDb)
+  // })
 
   socket.on('player buys', function(gameId, username) {
     let thisGameDb = {...dbTools.getGameDb(gameId)}
@@ -876,30 +891,33 @@ game.on('connection', function(socket) {
     }
   })
 
-  socket.on('start new round', function(gameId) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
-    console.log('yeas')
+  socket.on('start new round', function(roomId) {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      for (let i in roomObject.players) {
+        roomObject.players[i].hand = []
+      }
+      roomObject.discard = []
+      roomObject.stock = []
+      roomObject.table = []
+      roomObject.currentRoundEnded = false
+      roomObject.prevPlayer = null
+      roomObject.currentTurn = 0
+      roomObject.currentPlayerHasGrabbedCard = false
 
-    for (let i in thisGameDb.players) {
-      thisGameDb.players[i].hand = []
-    }
+      const updateDoc = { $set: roomObject }
 
-    dbTools.setGameDb(gameId, {
-      players: thisGameDb.players,
-      discard: [],
-      stock: [],
-      table: [],
-      currentRoundEnded: false,
-      currentTurn: 0,
-      currentPlayerHasGrabbedCard: false
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          initNewGame(roomId)
+        }
+      })
     })
-
-    initNewGame(gameId)
-
-    const newGameDb = dbTools.getGameDb(gameId)
-
-    // sendEachUserInfo(gameId, newGameDb)
-    // sendGameInfo(gameId, newGameDb)
   })
 
 
