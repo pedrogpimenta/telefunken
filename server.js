@@ -3,8 +3,8 @@ const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 const mongodb = require('mongodb')
-const ObjectID = mongodb.ObjectID
-const fs = require('fs')
+// const ObjectID = mongodb.ObjectID
+// const fs = require('fs')
 const _ = require('lodash')
 
 const tools = require('./helpers/tools.js')
@@ -19,20 +19,8 @@ app.get('/*', (req, res) => {
   res.sendFile(__dirname + '/frontend/build/index.html');
 });
 
-
-
-
-
-
-
-
-
-
-
-
-var ROOMS_COLLECTION = 'rooms'
-
 // Start Db connection
+var ROOMS_COLLECTION = 'rooms'
 let telefunkenDb = {}
 mongodb.MongoClient.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/Telefunken', {useUnifiedTopology: true}, function(err, client) {
   if (err) {
@@ -41,27 +29,13 @@ mongodb.MongoClient.connect(process.env.MONGODB_URI || 'mongodb://localhost:2701
   }
 
   telefunkenDb = client.db()
-  console.log('Database connection ready!')
-
 })
 
+// --------------------------------- 
+// Helpers 
+// ---------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// on game start
+// start new game / round
 const initNewGame = function(roomId) {
 
   const cardsToPlayer = (deck, n) => {
@@ -108,7 +82,7 @@ const initNewGame = function(roomId) {
       roomObject.firstPlayer = firstPlayer
       roomObject.currentPlayer = firstPlayer
     } else {
-      roomObject.players = roomObject.players.map(user => {
+      players = roomObject.players.map(user => {
         // add player info to this round
         // roomObject.rounds.playerPoints.push({name: user.name, points: 0})
   
@@ -116,8 +90,10 @@ const initNewGame = function(roomId) {
         user.hand = cardsToPlayer(roomObject.stock, 11)
         return user
       })
-      const nextPlayer = tools.getNextPlayer(players, roomObject.currentPlayer)
-      roomObject.currentPlayer = nextPlayer
+      // put users on players 
+      roomObject.players = players
+      const nextPlayerIndex = tools.getNextPlayer(players, roomObject.currentPlayer)
+      roomObject.currentPlayer = players[nextPlayerIndex].name
     }
 
     // set game has started
@@ -139,33 +115,6 @@ const initNewGame = function(roomId) {
     })
   })
 }
-
-// new game turn
-// const setNewTurn = (gameId, newPlayer) => {
-//   let thisGameDb = dbTools.getGameDb(gameId)
-//   const currentPlayer = thisGameDb.currentPlayer
-//   const currentTurn = thisGameDb.currentTurn
-
-//   const nextPlayer = thisGameDb.players[dbTools.nextPlayerIndex(gameId)].username
-//   const prevPlayer = thisGameDb.currentPlayer
-
-//   dbTools.setGameDb(gameId, {
-//     prevPlayer: prevPlayer,
-//     currentPlayer: nextPlayer,
-//     currentPlayerHasGrabbedCard: false,
-//     currentTurn: currentTurn + 1,
-//     aPlayerHasBoughtThisTurn: false,
-//     someoneWantsItBefore: false
-//   })
-// }
-
-// round ends
-// const endThisRound = (gameId) => {
-//   let thisGameDb = dbTools.getGameDb(gameId)
-//   dbTools.setGameDb(gameId, {
-//     currentRoundEnded: true
-//   })
-// }
 
 // handle buying
 const handleBuying = (gameId, username) => {
@@ -231,41 +180,6 @@ const handleBuying = (gameId, username) => {
   //sendUserInfo(gameId, username)
   //sendGameInfo(gameId, currentGameDb) 
 }
-
-
-
-
-
-
-
-
-
-
-
-console.log('-------------------------------')
-console.log('-------------------------------')
-console.log('-------------------------------')
-console.log('-------------------------------')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --------------------------------- 
-// Socket server stuff
-// ---------------------------------
-
-// set namespace 'game'
-const game = io.of('/game')
 
 // HELPER: send user info
 // const sendUserInfo = function(gameId, username) {
@@ -362,10 +276,17 @@ const sendGameInfo = function(roomId) {
   })
 }
 
+console.log('-------------------------------')
+console.log('-------------------------------')
+console.log('-------------------------------')
+console.log('-------------------------------')
 
+// --------------------------------- 
+// Socket server stuff
+// ---------------------------------
 
-
-
+// set namespace 'game'
+const game = io.of('/game')
 
 // on Init connection to game
 game.on('connection', function(socket) {
@@ -433,13 +354,9 @@ game.on('connection', function(socket) {
   // socket join room
   socket.join(thisGameId)
 
-
-
-
-
-
-
-
+  // ------------------- 
+  // user actions from frontend
+  // ------------------- 
 
   // user login
   socket.on('login', function(roomId, username) {
@@ -567,186 +484,16 @@ game.on('connection', function(socket) {
     })
   })
 
-  // socket.on('card from user to discard', function(gameId, username, card) {
-  //   let thisGameDb = dbTools.getGameDb(gameId)
-
-  //   // let newPlayerHand = []
-  //   let newDiscard = thisGameDb.discard.slice()
-
-  //   newDiscard.push(card)
-
-  //   dbTools.setGameDb(gameId, {
-  //     discard: newDiscard
-  //   })
-
-  //   const thisPlayerIndex = thisGameDb.players.findIndex(player => player.username === username)
-
-  //   if (thisGameDb.players[thisPlayerIndex].hand.length === 0) {
-  //     endThisRound(gameId)
-  //   } else if (thisGameDb.players[thisPlayerIndex].hand.length === 1) {
-  //     if (thisGameDb.players[thisPlayerIndex].hand[0].id === card.id) {
-  //       endThisRound(gameId)
-  //     }
-  //   } else {
-  //     setNewTurn(gameId, username)
-  //   }
-
-
-  //   thisGameDb = dbTools.getGameDb(gameId)
-
-  //   // //sendUserInfo(gameId, username)
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
-
-  // socket.on('update user hand', function(roomId, username, hand) {
-  //   console.log('is upddtaing hand')
-  //   telefunkenDb.collection(ROOMS_COLLECTION).findOne({
-  //     name: roomId
-  //   }).then((gameDb) => {
-  //   console.log('is upddtaing hand2')
-
-  //     let numberOfMatches = 0
-  //     for (let p in gameDb.players) {
-  //       if (gameDb.players[p].username === username) {
-  //         for (let card in hand) {
-  //           for (let serverCard in gameDb.players[p].hand) {
-  //             if (hand[card].id === gameDb.players[p].hand[serverCard].id) {
-  //               numberOfMatches += 1
-  //             } 
-  //           }
-  //         }
-  //       }
-  //     }
-      
-  //     const handLength = hand.length
-  //   console.log('handLength:', handLength)
-  //   console.log('numberOfMatches:', numberOfMatches)
-  //     if (handLength === numberOfMatches) {
-  //   console.log('is upddtaing hand3')
-
-  //       const thisUserIndex = gameDb.players.findIndex(player => player.name === username)
-  //       const updatedUser = gameDb.players[thisUserIndex]
-  //       updatedUser[hand] = hand
-
-  //       const updateDoc = { $set: { 'players.$[element]': updatedUser } }
-  //       const arrayFilters = { arrayFilters: [ { 'element.name': username } ] }
-
-  //       telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
-  //         name: roomId
-  //       }, updatedRoom, function(err, doc) {
-  //   console.log('is upddtaing hand4')
-
-  //         if (err)  {
-  //           // TODO: error message
-  //           game.to(roomId).emit('error')
-  //         } else {
-  //           // update game to users
-  //           sendGameInfo(roomId)
-  //         }
-  //       })
-  //     }
-  //   })
-  // })
-
-  // socket.on('update table', function(gameId, table) {
-  //   dbTools.setGameDb(gameId, {
-  //     table: table
-  //   })
-
-  //   thisGameDb = dbTools.getGameDb(gameId)
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
-
-
-
-
-
-
-
-  // socket.on('new group', function(gameId, username, content) {
-  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
-
-  //   const newGroup = {
-  //     id: tools.guidGenerator(),
-  //     cards: [content.card]
-  //   }
-
-  //   thisGameDb.table.push(newGroup)
-
-  //   dbTools.setGameDb(gameId, {
-  //     table: thisGameDb.table
-  //   })
-
-  //   //sendUserInfo(gameId, username)
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
-
-  // socket.on('remove card from group', function(gameId, username, content) {
-  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
-
-  //   const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
-
-  //   let newGroupCards = thisGameDb.table[groupIndex].cards
-  //   newGroupCards.splice(content.removedIndex, 1)
-
-  //   const isGroupEmpty = !newGroupCards.length
-
-  //   if (!isGroupEmpty) {
-  //     dbTools.setGameDb(gameId, {
-  //       group: {
-  //         id: thisGameDb.table[groupIndex].id,
-  //         cards: newGroupCards
-  //       }
-  //     })
-  //   } else {
-  //     const thisTable = thisGameDb.table.slice()
-
-  //     thisTable.splice(groupIndex, 1)
-  //     dbTools.setGameDb(gameId, {
-  //       table: thisTable
-  //     })
-  //   }
-
-  //   thisGameDb = dbTools.getGameDb(gameId)
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
-
-  // socket.on('add card to group', function(gameId, username, content) {
-  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
-
-  //   const groupIndex = thisGameDb.table.findIndex(group => group.id === content.groupId)
-
-  //   let newGroupCards = thisGameDb.table[groupIndex].cards
-  //   newGroupCards.splice(content.addedIndex, 0, content.card)
-
-  //   dbTools.setGameDb(gameId, {
-  //     group: {
-  //       id: thisGameDb.table[groupIndex].id,
-  //       cards: newGroupCards
-  //     }
-  //   })
-
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
-
   socket.on('card movement', function(roomId, username, cardMovement) {
-    console.log('ya')
     telefunkenDb.collection(ROOMS_COLLECTION).findOne({
       name: roomId
     }).then(roomObject => {
-      
-      console.log('movement from:', cardMovement.from)
-      console.log('movement from position:', cardMovement.fromPosition)
-
       const playerIndex = roomObject.players.findIndex(player => player.name === username)
       let card = {}
 
       if (cardMovement.from === 'player') {
         card = roomObject.players[playerIndex].hand[cardMovement.fromPosition]
         roomObject.players[playerIndex].hand.splice(cardMovement.fromPosition, 1)
-
-        console.log('card:', card)
-        console.log('hand1:', roomObject.players[playerIndex].hand)
       } else {
         const groupId = roomObject.table.findIndex(group => group.id === cardMovement.from)
 
@@ -763,7 +510,6 @@ game.on('connection', function(socket) {
       } else if (cardMovement.to === 'discard') {
         roomObject.discard.push(card)
 
-        console.log(roomObject.players[playerIndex].hand.length)
         if (roomObject.players[playerIndex].hand.length === 0) {
           roomObject.currentRoundEnded = true
           roomObject.prevPlayer = null
@@ -804,7 +550,6 @@ game.on('connection', function(socket) {
         if (err)  {
           // TODO: hanlde error
         } else {
-          console.log('sent')
           sendGameInfo(roomId)
         }
       })
@@ -812,45 +557,6 @@ game.on('connection', function(socket) {
 
 
   });
-
-  // socket.on('remove card from player hand', function(gameId, username, content) {
-  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
-
-  //   const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
-  //   const cardIndex = thisGameDb.players[playerIndex].hand.findIndex(card => card.id === content.card.id)
-
-  //   let newHand = thisGameDb.players[playerIndex].hand
-  //   newHand.splice(cardIndex, 1)
-
-  //   dbTools.setGameDb(gameId, {
-  //     playerRemoveCard: {
-  //       username: thisGameDb.players[playerIndex].username,
-  //       hand: newHand
-  //     }
-  //   })
-
-  //   // sendUserInfo(gameId, username)
-  //   // sendGameInfo(gameId, thisGameDb)
-  // })
-
-  // socket.on('add card to player hand', function(gameId, username, content) {
-  //   let thisGameDb = {...dbTools.getGameDb(gameId)}
-
-  //   const playerIndex = thisGameDb.players.findIndex(player => player.username === username)
-
-  //   let newHand = thisGameDb.players[playerIndex].hand
-  //   newHand.splice(content.addedIndex, 0, content.card)
-
-  //   dbTools.setGameDb(gameId, {
-  //     player: {
-  //       username: thisGameDb.players[playerIndex].username,
-  //       hand: newHand
-  //     }
-  //   })
-
-  //   //sendUserInfo(gameId, username)
-  //   //sendGameInfo(gameId, thisGameDb)
-  // })
 
   socket.on('player buys', function(gameId, username) {
     let thisGameDb = {...dbTools.getGameDb(gameId)}
@@ -921,15 +627,6 @@ game.on('connection', function(socket) {
   })
 
 
-
-
-
-
-
-
-
-
-
   socket.on('disconnect', function() {
     telefunkenDb.collection(ROOMS_COLLECTION).findOne({
       name: thisGameId
@@ -944,7 +641,6 @@ game.on('connection', function(socket) {
       }
 
       if (!!userAlreadyPlaying()) {
-        console.log('disconnect, userAlreadyPlaying YES')
         const updatedUser = userAlreadyPlaying()
         updatedUser.isOnline = false
 
@@ -961,8 +657,6 @@ game.on('connection', function(socket) {
           }
         })
       } else {
-        console.log('disconnect, userAlreadyPlaying NOT')
-
         const updateDoc = { $pull: { 'connectedUsers': { socketId: socket.id } } }
 
         telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
@@ -978,7 +672,5 @@ game.on('connection', function(socket) {
     })
   })
 })
-
-
 
 http.listen(port, () => console.log(`Listening on port ${port}`))
