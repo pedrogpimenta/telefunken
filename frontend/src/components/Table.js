@@ -5,32 +5,6 @@ import { Container } from 'react-smooth-dnd'
 import RenderCards from './RenderCards'
 
 class Table extends Component {
-  constructor() {
-    super()
-
-    this.handleNewGroupDrop = this.handleNewGroupDrop.bind(this)
-  }
-
-  // ------------------- 
-  // user actions
-  // ------------------- 
-
-  handleNewGroupDrop(e) {
-    const removedIndex = e.removedIndex
-    const addedIndex = e.addedIndex
-    const fromGroup = this.props.fromGroup
-    const card = this.props.savedCard
-
-    // stop if not for this group
-    if (removedIndex === null && addedIndex === null) { return false }
-    // stop if user hasn't grabbed card
-    if (!this.props.room.currentPlayerHasGrabbedCard) { return false }
-    // stop if user isn't current player
-    if (this.props.room.currentPlayer !== this.props.user.username) { return false }
-
-    this.props.sendToServer('new group', {card})
-  }
-
   // ------------------- 
   // render functions
   // ------------------- 
@@ -43,9 +17,7 @@ class Table extends Component {
         cards={group.cards}
         location='table'
         onClick={this.props.onClick}
-        // handleHandUpdate={(e) => this.props.handleHandUpdate(e)}
         handleCardDrop={(location, e) => this.props.handleCardDrop(location, e)}
-        // handleTableUpdate={(e) => this.props.handleTableUpdate(e)}
         sendToServer={(action, content) => this.props.sendToServer(action, content)}
       />
     ))
@@ -86,12 +58,7 @@ function mapStateToProps(state) {
     connectedUsers: state.connectedUsers,
     user: state.user,
     isTableActive: state.isTableActive,
-    savedCard: state.savedCard,
-    toGroup: state.toGroup,
-    fromGroup: state.fromGroup,
-
     userIsDragging: state.userIsDragging,
-    draggedCard: state.draggedCard
   }
 }
 

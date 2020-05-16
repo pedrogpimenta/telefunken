@@ -48,7 +48,6 @@ function PlayingCard(props) {
   const isCardHidden = () => !props.value || !props.suit
 
   const text = 'text-xl tracking-tighter'
-  const cardBorderColour = 'border-gray-400'
   const sizeBg = 'w-12 md:w-16 h-16 md:h-20'
   const sizeSm = 'w-12 h-16'
   const spacings = 'px-2 py-1 mx-2 my-2'

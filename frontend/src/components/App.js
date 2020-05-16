@@ -19,8 +19,6 @@ class App extends Component {
 
     this.handleStartGameButton = this.handleStartGameButton.bind(this)
     this.handleCardClick = this.handleCardClick.bind(this)
-    this.handleDiscardDrop = this.handleDiscardDrop.bind(this)
-    // this.handleHandUpdate = this.handleHandUpdate.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
     this.handleBuyButton = this.handleBuyButton.bind(this)
     this.handleCardDrop = this.handleCardDrop.bind(this)
@@ -54,17 +52,6 @@ class App extends Component {
     }
   }
 
-  handleDiscardDrop(cardLocation, e) {
-
-  }
-
-  // handleHandUpdate() {
-  //   const playerHand = this.props.room.players.map(player => {
-  //     if (player.name === this.props.user.username) { return player.hand }
-  //   })
-  //   this.socket.emit('update user hand', this.props.room.name, this.props.user.username, playerHand)
-  // }
-
   handleTableUpdate() {
     this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
   }
@@ -91,8 +78,6 @@ class App extends Component {
   handleCardDrop(cardLocation, e) {
     const removedIndex = e?.removedIndex
     const addedIndex = e?.addedIndex
-
-    console.log('card dropped in:', cardLocation)
 
     // stop if not removed or added to this group
     if (removedIndex === null && addedIndex === null) { return false }
@@ -247,7 +232,6 @@ class App extends Component {
         {!!this.props.room.gameHasStarted &&
           <Table 
             handleTableUpdate={(e) => this.handleTableUpdate(e)}
-            // handleHandUpdate={(e) => this.handleHandUpdate(e)}
             handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
             sendToServer={(action, content) => this.sendToServer(action, content)}
           />
@@ -303,7 +287,6 @@ class App extends Component {
           key={this.props.user.username}
           user={this.props.user}
           room={this.props.room}
-          // handleHandUpdate={e => this.handleHandUpdate(e)}
           currentPlayer={this.props.room.currentPlayer}
           handleBuyButton={e => this.handleBuyButton(e)}
           handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
@@ -389,7 +372,6 @@ function mapStateToProps(state) {
     connectedUsers: state.connectedUsers,
     user: state.user,
     isTableActive: state.isTableActive,
-    savedCard: state.savedCard,
     playerWantsToBuy: state.playerWantsToBuy,
     cardMovement: state.cardMovement
  }

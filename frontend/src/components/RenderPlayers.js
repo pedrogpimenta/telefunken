@@ -23,7 +23,7 @@ class RenderPlayers extends Component {
 
         if (thisValue === 'A' || thisValue === 'K' || thisValue === 'Q' || thisValue === 'J') {
           userTotalPoints += 10
-        } else if (thisValue == 2) {
+        } else if (Number(thisValue) === 2) {
           userTotalPoints += 15
         } else {
           userTotalPoints += parseInt(thisValue)
