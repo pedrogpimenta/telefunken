@@ -19,19 +19,22 @@ class App extends Component {
 
     this.handleStartGameButton = this.handleStartGameButton.bind(this)
     this.handleCardClick = this.handleCardClick.bind(this)
-    this.handleDiscardDrop = this.handleDiscardDrop.bind(this)
-    this.handleHandUpdate = this.handleHandUpdate.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
-    this.handleBuyButton = this.handleBuyButton.bind(this)
+    this.handlePauseButton = this.handlePauseButton.bind(this)
+    this.handleCardDrop = this.handleCardDrop.bind(this)
 
     this.renderHeader = this.renderHeader.bind(this)
     this.renderDiscardPile = this.renderDiscardPile.bind(this)
     this.renderStock = this.renderStock.bind(this)
     this.renderMain = this.renderMain.bind(this)
     this.renderPlayer = this.renderPlayer.bind(this)
-    this.renderBuyButton = this.renderBuyButton.bind(this)
+    this.renderPauseButton = this.renderPauseButton.bind(this)
     this.renderBuyRequest = this.renderBuyRequest.bind(this)
     this.handleIWantItBeforeButton = this.handleIWantItBeforeButton.bind(this)
+
+    this.cooldown = 0;
+    this.startCooldown = this.startCooldown.bind(this);
+    this.cooldownCountDown = this.cooldownCountDown.bind(this);
   }
 
   // ------------------- 
@@ -39,54 +42,99 @@ class App extends Component {
   // ------------------- 
 
   handleStartGameButton() {
-    this.socket.emit('start game', this.props.gameDb.gameId, this.props.user.username)
+    this.socket.emit('start game', this.props.room.name, this.props.user.username)
   }
 
   handleCardClick(cardType) {
     // stop if player is not current player
-    if (this.props.user.username !== this.props.gameDb.currentPlayer) { return false }
+    if (this.props.user.username !== this.props.room.currentPlayer) { return false }
 
     if (cardType === 'stock') {
-      if (this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
+      if (this.props.room.currentPlayerHasGrabbedCard) { return false }
 
-      this.socket.emit('card from stock to user', this.props.gameDb.gameId, this.props.user.username)
+      this.socket.emit('card from stock to user', this.props.room.name, this.props.user.username)
     }
   }
 
-  handleDiscardDrop(e) {
-    // stop if not dropped in discard
-    if (e.removedIndex === null && e.addedIndex === null) { return false }
-    // stop if user hasn't grabbed card
-    if (!this.props.gameDb.currentPlayerHasGrabbedCard) { return false }
-    if (this.props.user.username !== this.props.gameDb.currentPlayer) { return false }
-    this.socket.emit('card from user to discard', this.props.gameDb.gameId, this.props.user.username, this.props.savedCard)
-  }
-
-  handleHandUpdate() {
-    this.socket.emit('update user hand', this.props.gameDb.gameId, this.props.user.username, this.props.user.hand)
-  }
-
   handleTableUpdate() {
-    this.socket.emit('update table', this.props.gameDb.gameId, this.props.gameDb.table)
+    this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
   }
 
   sendToServer(action, content) {
-    this.socket.emit(action, this.props.gameDb.gameId, this.props.user.username, content)
+    this.socket.emit(action, this.props.room.gameId, this.props.user.username, content)
   }
 
-  handleBuyButton() {
-    console.log('buy!')
-    this.socket.emit('player buys', this.props.gameDb.gameId, this.props.user.username)
+  handlePauseButton() {
+    this.socket.emit('player pauses', this.props.room.name, this.props.user.username)
+  }
+
+  handleBuying() {
+    this.socket.emit('player buys', this.props.room.name, this.props.user.username)
+  }
+
+  handleAlsoWants() { 
+    console.log('click also wants')
+    this.socket.emit('player also wants', this.props.room.name, this.props.user.username)
   }
 
   handleIWantItBeforeButton() {
     console.log('no, me!')
-    this.socket.emit('i want it before', this.props.gameDb.gameId, this.props.user.username)
+    this.socket.emit('i want it before', this.props.room.gameId, this.props.user.username)
   }
 
   handleNewRoundButton() {
     console.log('new round!!')
-    this.socket.emit('start new round', this.props.gameDb.gameId)
+    this.socket.emit('start new round', this.props.room.name)
+  }
+
+  handleCardDrop(cardLocation, e) {
+    const removedIndex = e?.removedIndex
+    const addedIndex = e?.addedIndex
+
+    // stop if not removed or added to this group
+    if (removedIndex === null && addedIndex === null) { return false }
+
+    // if card removed from and NOT added
+    if (removedIndex !== null && addedIndex === null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        fromPosition: removedIndex
+      }) 
+    }
+
+    // if card added to and NOT removed
+    if (addedIndex !== null && removedIndex === null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        to: cardLocation,
+        toPosition: addedIndex
+      }) 
+    }
+
+    // if card removed and added (moved inside players hand)
+    if (removedIndex === addedIndex) return false
+
+    if (removedIndex !== null && addedIndex !== null) {
+      // save drop info
+      this.props.dispatch({
+        type: "MOVEMENT_INFO",
+        to: cardLocation,
+        fromPosition: removedIndex,
+        toPosition: addedIndex
+      }) 
+    }
+
+    // this means FROM and TO are set, do DB things
+    if (this.props.cardMovement?.fromPosition >= 0 && this.props.cardMovement?.toPosition >= 0) {
+      this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
+
+      // remove previous drop info
+      this.props.dispatch({
+        type: "CLEAR_MOVEMENT_INFO"
+      }) 
+    }
   }
 
   // ------------------- 
@@ -95,14 +143,14 @@ class App extends Component {
 
   // render header
   renderHeader() {
-    if (!this.props.gameDb.currentRound) { return false }
+    if (!this.props.room.gameHasStarted) { return false }
     return (
       <div className="relative z-20 inline-flex items-end justify-between border-b border-solid border-gray-300">
         <div className="inline-flex flex-grow">
-          <RenderPlayers players={this.props.gameDb.players} />
+          <RenderPlayers players={this.props.room.players} />
         </div>
         <div className="inline-flex justify-center py-2">
-          {this.props.gameDb.currentRoundEnded &&
+          {this.props.room.currentRoundEnded &&
             <div className="inline-flex self-center">
               <Button
                 classes='mx-2'
@@ -120,7 +168,8 @@ class App extends Component {
 
   // render discard pile
   renderDiscardPile() {
-    let hasHiddenCards = this.props.gameDb.hiddenCardsWereBought ? 'noHiddenCards' : 'hasHiddenCards'
+    let hasHiddenCards = this.props.room.hiddenCardsWereBought ? 'noHiddenCards' : 'hasHiddenCards'
+    const willAcceptDrop = this.props.room.currentPlayer === this.props.user.username && this.props.room.currentPlayerHasGrabbedCard
 
     const classes = `inline-flex ${hasHiddenCards} rounded border-2 border-dashed border-gray-400`
 
@@ -132,16 +181,16 @@ class App extends Component {
           left: 0,
           marginLeft: '1rem'
         }}
-        groupName='droppable'
+        groupName={(willAcceptDrop && 'droppable') || ''}
         animationDuration={0}
         behaviour='drop-zone'
-        onDrop={(e) => {this.handleDiscardDrop(e)}}
+        onDrop={(e) => {this.handleCardDrop('discard', e)}}
       >
         <div
           className={classes}
           style={{minWidth: '4.3rem', minHeight: '5rem'}}
         >
-          <RenderCards cards={this.props.gameDb.discard} location='discard' />
+          <RenderCards cards={this.props.room.discard} location='discard' />
         </div>
       </Container>
     )
@@ -149,9 +198,21 @@ class App extends Component {
 
   // render stock
   renderStock() {
+    const disableStyles = this.props.room.currentPlayer === this.props.user.username && this.props.turnCooldown > 0 ? 'opacity-25' : null
     return (
-      <div className="absolute bottom-0 left-0 ml-32 mb-2 inline-flex items-center justify-center">
-        <RenderCards cards={this.props.gameDb.stock} location='stock' onClick={this.handleCardClick} />
+      <div className='absolute bottom-0 left-0 ml-32 mb-2 inline-flex items-center justify-center'>
+        {this.props.room.currentPlayer === this.props.user.username && this.props.turnCooldown > 0 && 
+          <div className='absolute top-0 left-0 w-12 md:w-16 h-full mx-2 inline-flex items-center justify-center z-40 font-bold text-2xl'>
+            {this.props.turnCooldown}
+          </div>
+        }
+        <div className={disableStyles}>
+          <RenderCards
+            cards={this.props.room.stock}
+            location='stock'
+            onClick={this.handleCardClick}
+          />
+        </div>
       </div>
     )
   }
@@ -159,7 +220,7 @@ class App extends Component {
   renderBuyRequest() {
     const playerWantsToBuy = this.props.playerWantsToBuy
 
-    if (this.props.gameDb.prevPlayer === this.props.user.username || this.props.playerWantsToBuy === this.props.user.username) { return false }
+    if (this.props.room.prevPlayer === this.props.user.username || this.props.playerWantsToBuy === this.props.user.username) { return false }
 
     if (!!playerWantsToBuy) {
       return(
@@ -191,23 +252,23 @@ class App extends Component {
   // render player
   renderMain() {
     return (
-      <div className="relative inline-flex flex-col items-center justify-center flex-grow flex-shrink">
-        {!!this.props.gameDb.currentRound &&
+      <div className="relative inline-flex flex-col items-center justify-center flex-grow flex-shrink z-20">
+        {!!this.props.room.gameHasStarted &&
           <Table 
             handleTableUpdate={(e) => this.handleTableUpdate(e)}
-            handleHandUpdate={(e) => this.handleHandUpdate(e)}
+            handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
             sendToServer={(action, content) => this.sendToServer(action, content)}
           />
         }
-        {!!this.props.gameDb.currentRound && this.renderDiscardPile()}
-        {!!this.props.gameDb.currentRound && this.renderStock()}
-        {!this.props.gameDb.currentRound &&
+        {!!this.props.room.gameHasStarted && this.renderDiscardPile()}
+        {!!this.props.room.gameHasStarted && this.renderStock()}
+        {!this.props.room.gameHasStarted &&
           <div> 
             <p>Jugadores:</p>
             <ul>
-              {this.props.gameDb.players.map(player => (
-                <li key={`playerList-${player.id}`}>
-                {player.username}
+              {this.props.room.connectedUsers.map(user => (
+                <li key={`userList-${user.id}`}>
+                {user.name}
                 </li>
               ))}
             </ul>
@@ -223,38 +284,205 @@ class App extends Component {
     )
   }
 
-  renderBuyButton() {
-    const isPrevPlayerThisPlayer = this.props.gameDb.prevPlayer === this.props.user.username
-    const hasCurrentPlayerGrabbedCard = this.props.gameDb.currentPlayerHasGrabbedCard
-    const isBuyButtonDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard
+  cancelPause() {
+    this.socket.emit('player cancels pause', this.props.room.name)
+  }
+
+  startCooldown() {
+    this.props.dispatch({
+      type: "UPDATE_COOLDOWN_TIME",
+      turnCooldown: this.props.room.cooldownTime
+    })
+    this.cooldown = setInterval(this.cooldownCountDown, 1000)
+  }
+  
+  cooldownCountDown() {
+    let newCooldownTime = this.props.turnCooldown - 1
+    this.props.dispatch({
+      type: "UPDATE_COOLDOWN_TIME",
+      turnCooldown: newCooldownTime
+    })
+    
+    // Check if we're at zero.
+    if (this.props.turnCooldown === 0) { 
+      clearInterval(this.cooldown)
+    }
+  }
+
+  getNextPlayer(players, currentPlayer) {
+    for (let i in players) {
+      if (players[i].name === currentPlayer) {
+        if ((Number(i) + 1) > (players.length - 1)) {
+          return 0
+        } else {
+          return Number(i) + 1
+        }
+      }
+    }
+  }
+
+  isThisUserTurn = () => this.props.user.username === this.props.room.currentPlayer
+
+  renderPausePopup() {
+    const isPrevPlayerThisPlayer = this.props.room.prevPlayer === this.props.user.username
+    const hasCurrentPlayerGrabbedCard = this.props.room.currentPlayerHasGrabbedCard
+    const isBuyingDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard
+
+    const thisUserPaused = this.props.room.playerPausedGame === this.props.user.username
+
+    const userHasPriority = () => {
+      const thisUserPriorityIndex = this.props.room.playersByPriority.findIndex(player => player === this.props.user.username)
+      const currentPlayerPriorityIndex = this.props.room.playersByPriority.findIndex(player => player === this.props.room.currentPlayer)
+      const playerPausedPriorityIndex = this.props.room.playersByPriority.findIndex(player => player === this.props.room.playerPausedGame)
+
+      return thisUserPriorityIndex === currentPlayerPriorityIndex || thisUserPriorityIndex < playerPausedPriorityIndex
+    }
+
+    return (
+      <div className='absolute right-0 mb-2 mr-2 w-64 rounded p-2 bg-blue-400 text-white z-50' style={{bottom: '100%'}}>
+        {thisUserPaused && !isBuyingDisabled &&
+          <div className='flex flex-col items-center'>
+            {this.isThisUserTurn() &&
+              <div className='text-center'>Es tu turno, ¿Quieres comprar?</div>
+            }
+            {!this.isThisUserTurn() &&
+              <div className='text-center'>¿Quieres comprar?</div>
+            }
+            <Button
+              classes='my-2 w-full'
+              onClick={(e) => {this.handleBuying(e)}}
+            >
+              ¡¡Siiiiiii!!
+            </Button>
+            <Button
+              classes='w-full'
+              onClick={(e) => {this.cancelPause(e)}}
+            >
+              Al final no
+            </Button>
+            {!userHasPriority()  &&
+              <div className='text-xs mt-1'>
+                Sólo podrás comprar si estas personas no quieren:
+                <strong>
+                  {this.props.room.playersByPriority.map((player, index) => {
+                    const thisUserPriorityIndex = this.props.room.playersByPriority.findIndex(player => player === this.props.user.username)
+
+                    if (index < thisUserPriorityIndex) {
+                      if (index === 0) {
+                        return ` ${player}`
+                      } else {
+                        return `, ${player}`
+                      }
+                    }
+                  })}
+                </strong>
+              </div>
+            }
+          </div>
+        }
+        {!thisUserPaused &&
+          <div className='flex flex-col items-center'>
+            <div className='text-center'>
+              <strong>{this.props.room.playerPausedGame}</strong> se lo está pensando
+            </div>
+            {userHasPriority() && !isBuyingDisabled &&
+              <div>
+                <Button
+                  classes='my-2 w-full'
+                  onClick={(e) => {this.handlePauseButton(e)}}
+                >
+                  No, ¡yo compro!
+                </Button>
+                {/* <Button
+                  classes='mx-2 w-full'
+                  onClick={(e) => {this.handleOk(e)}}
+                >
+                  Hmmm... vale.
+                </Button> */}
+              </div>
+            }
+            {!userHasPriority() && !isBuyingDisabled &&
+              <div>
+                <Button
+                  classes='mx-2 my-2 w-full'
+                  onClick={(e) => {this.handleAlsoWants(e)}}
+                >
+                  Yo también quiero!
+                </Button>
+              </div>
+            }
+            {!userHasPriority() && !isBuyingDisabled &&
+              <div className='text-xs mt-1'>
+                Sólo podrás comprar si estas personas al final no compran:
+                <strong>
+                  {this.props.room.playersByPriority.map((player, index) => {
+                    const thisUserPriorityIndex = this.props.room.playersByPriority.findIndex(player => player === this.props.user.username)
+
+                    if (index < thisUserPriorityIndex) {
+                      if (index === 0) {
+                        return ` ${player}`
+                      } else {
+                        return `, ${player}`
+                      }
+                    }
+                  })}
+                </strong>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    )
+  }
+
+  renderPauseButton() {
+    const isPrevPlayerThisPlayer = this.props.room.prevPlayer === this.props.user.username
+    const hasCurrentPlayerGrabbedCard = this.props.room.currentPlayerHasGrabbedCard
+    const isPauseButtonDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard
+
+    const playerPausedGame = this.props.room.playerPausedGame
+    const isGamePaused = !!playerPausedGame
 
     return (
       <div className="absolute right-0 top-0">
-        <Button
-          disabled={isBuyButtonDisabled}
-          classes='mx-2'
-          onClick={(e) => {this.handleBuyButton(e)}}
-        >
-          Comprar
-        </Button>
+        {!isGamePaused &&
+          <Button
+            disabled={isPauseButtonDisabled}
+            classes='mx-2'
+            onClick={(e) => {this.handlePauseButton(e)}}
+          >
+            ¡Un momento!
+          </Button>
+        }
+        {isGamePaused && this.renderPausePopup()}
+        {isGamePaused &&
+          <Button
+            disabled={true}
+            classes='mx-2'
+            onClick={(e) => {this.handlePauseButton(e)}}
+          >
+            {this.props.room.remainingTime}
+          </Button>
+        }
       </div>  
     )
   }
 
   // render player
   renderPlayer() {
-    if (!this.props.gameDb.currentRound) { return false }
+    if (!this.props.room.gameHasStarted) { return false }
     return (
-      <div className="relative inline-flex items-center">
+      <div className="relative inline-flex items-center z-30">
         <Player
           key={this.props.user.username}
           user={this.props.user}
-          handleHandUpdate={(e) => this.handleHandUpdate(e)}
-          currentPlayer={this.props.gameDb.currentPlayer}
-          handleBuyButton={(e) => this.handleBuyButton(e)}
+          room={this.props.room}
+          currentPlayer={this.props.room.currentPlayer}
+          handlePauseButton={e => this.handlePauseButton(e)}
+          handleCardDrop={(location, e) => this.handleCardDrop(location, e)}
           sendToServer={(action, content) => this.sendToServer(action, content)}
         />
-        {this.renderBuyButton()}
+        {this.renderPauseButton()}
       </div>
     )
   }
@@ -304,8 +532,22 @@ class App extends Component {
     })
 
     // receive game info
-    this.socket.on('updateGame', (gameDb) => {
-      this.props.dispatch({ type: "UPDATE_GAME", value: gameDb })
+    this.socket.on('updateGame', (room) => {
+      let shouldStartCooldown = false
+      if (this.props.room.rounds.length > 0) {
+        const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
+        const newTurn = room.rounds[room.rounds.length - 1].currentTurn
+
+        if (currentTurn < newTurn) {
+          shouldStartCooldown = true
+        }
+      }
+
+      this.props.dispatch({ type: "UPDATE_GAME", value: room })
+
+      if (shouldStartCooldown && this.props.room.currentPlayer === this.props.user.username) {
+        this.startCooldown()
+      }
     })
 
     // receive buy request
@@ -330,13 +572,14 @@ function mapStateToProps(state) {
   return {
     endpoint: state.endpoint,
     gameId: state.gameId,
-    gameDb: state.gameDb,
+    room: state.room,
     connectedUsers: state.connectedUsers,
     user: state.user,
     isTableActive: state.isTableActive,
-    savedCard: state.savedCard,
-    playerWantsToBuy: state.playerWantsToBuy
-  }
+    playerWantsToBuy: state.playerWantsToBuy,
+    cardMovement: state.cardMovement,
+    turnCooldown: state.turnCooldown
+ }
 }
 
 export default connect(mapStateToProps)(withRouter(App))

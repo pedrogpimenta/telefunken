@@ -28,49 +28,31 @@ import Welcome from './components/Welcome'
 // define initial state 
 const initialState = {
   endpoint: 'localhost:4001/game',
-  gameId: '',
-  connectedUsers: [],
-  gameDb: {
-    gameId: '',
+  room: {
+    name: '',
     deck: [], // initial cards
     stock: [], // remaining cards for play
     discard: [],
     totalRounds: 6,
     currentRound: 1,
+    rounds: [],
     direction: '', // clockwise/counterclockwise
     startingPlayer: '',
-    currentPlayerTurn: '',
+    currentPlayer: '',
     table: [], // stores array of cards on table
-    players: [ // keeps track of players and events
-      {
-        id: '',
-        socketId: '',
-        username: '',
-        hand: [],
-        buys: 6,
-        totalPoints: 0,
-        isOnline: true,
-        events: [
-          {
-            roundNumber: 1, // number of the round
-            buys: 0, // how many buys in this round
-            points: 0 // if 0, player cut in this round
-          }
-        ]
-      }
-    ]
+    connectedUsers: [],
+    players: [] // keeps track of players and events
   },
   user: {
-    socketId: '',
-    username: '',
-    cards: 0
+    username: ''
   },
   userIsDragging: false,
   savedCard: 'none',
   fromGroup: 'none',
   toGroup: 'none',
   minusOne: 0,
-  playerWantsToBuy: ''
+  playerWantsToBuy: '',
+  timer: 0
 }
 
 // define reducers
@@ -92,24 +74,24 @@ function reducer(state = initialState, action) {
     case 'UPDATE_GAME':
       return {
         ...state,
-        gameDb: action.value
+        room: action.value,
+        // turnCooldown: state.room.cooldownTime
       }
     case 'UPDATE_USER_INFO':
       return {
         ...state,
-        user: {
-          ...state.user,
-          id: action.id || state.user.id,
-          username: action.username || state.user.username,
-          isOnline: action.isOnline || state.user.isOnline,
-          hand: action.hand || state.hand
+        room: { 
+          ...state.room,
+          players: state.room.players.map(player => player.name === action.username ?
+              {...player, hand: action.hand} : player
+            )
         }
       }
     case 'UPDATE_TABLE':
       return {
         ...state,
-        gameDb: {
-          ...state.gameDb,
+        room: {
+          ...state.room,
           table: action.table
         }
       }
@@ -159,6 +141,30 @@ function reducer(state = initialState, action) {
       return {
         ...state,
         playerWantsToBuy: action.value
+      }
+
+    case 'MOVEMENT_INFO':
+      return {
+        ...state,
+        cardMovement: {
+          ...state.cardMovement,
+          from: action.from ?? state.cardMovement?.from,
+          to: action.to ?? state.cardMovement?.to,
+          fromPosition: action.fromPosition ?? state.cardMovement?.fromPosition,
+          toPosition: action.toPosition ?? state.cardMovement?.toPosition
+        }
+      }
+
+    case 'CLEAR_MOVEMENT_INFO':
+      return {
+        ...state,
+        cardMovement: null
+      }
+
+    case 'UPDATE_COOLDOWN_TIME':
+      return {
+        ...state,
+        turnCooldown: action.turnCooldown
       }
 
     default:

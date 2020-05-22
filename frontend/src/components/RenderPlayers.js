@@ -5,16 +5,16 @@ import RenderCards from './RenderCards'
 class RenderPlayers extends Component {
   render() {
     const isCurrentPlayer = (playerUsername) => {
-      return this.props.gameDb.currentPlayer === playerUsername
+      return this.props.room.currentPlayer === playerUsername
     }
 
-    return this.props.gameDb.players.map(player => {
+    return this.props.room.players.map(player => {
       const isPlayerOnline = player.isOnline
       const onlineClasses = "inline-flex flex-col items-start mx-2 sm:mx-4 my-2"
       const offlineClasses = `${onlineClasses} opacity-75`
       const styles = isPlayerOnline ? onlineClasses : offlineClasses
 
-      const showAllCards = this.props.gameDb.currentRoundEnded ? 'showAllCards' : null
+      const showAllCards = this.props.room.currentRoundEnded ? 'showAllCards' : null
 
       let userTotalPoints = 0
 
@@ -23,7 +23,7 @@ class RenderPlayers extends Component {
 
         if (thisValue === 'A' || thisValue === 'K' || thisValue === 'Q' || thisValue === 'J') {
           userTotalPoints += 10
-        } else if (thisValue == 2) {
+        } else if (Number(thisValue) === 2) {
           userTotalPoints += 15
         } else {
           userTotalPoints += parseInt(thisValue)
@@ -31,27 +31,25 @@ class RenderPlayers extends Component {
 
       }
 
-      console.log('userTotalPoints:', userTotalPoints)
-
-      if (player.username === this.props.user.username) { return false }
+      if (player.name === this.props.user.username) { return false }
 
       return (
         <div className={styles} key={player.id}>
           <span className='mb-1'>
-            {isCurrentPlayer(player.username) &&
+            {isCurrentPlayer(player.name) &&
               <strong>
-                {player.username}
+                {player.name}
               </strong>
             }
-            {!isCurrentPlayer(player.username) && player.username}
-            {this.props.gameDb.currentRoundEnded &&
+            {!isCurrentPlayer(player.name) && player.name}
+            {this.props.room.currentRoundEnded &&
               <span className='font-bold ml-3 p-1 bg-gray-400 rounded'>
                 {userTotalPoints}
               </span>
             }
           </span>
           <span className={`inline-flex showOnlyTwoCards ${showAllCards}`}>
-            <RenderCards key={player.username} cards={player.hand} location='other players' />
+            <RenderCards key={player.name} cards={player.hand} location='other players' />
           </span>
         </div>
       )
@@ -61,7 +59,7 @@ class RenderPlayers extends Component {
 
 function mapStateToProps(state) {
   return {
-    gameDb: state.gameDb,
+    room: state.room,
     user: state.user
   }
 }
