@@ -21,7 +21,7 @@ import App from './components/App'
 import Welcome from './components/Welcome'
 
 
-const endpoint = `//pimenta.telefunken.co:${process.env.PORT || 4001}/game`
+const endpoint = `//telefunken.pimenta.co/game`
 
 
 
