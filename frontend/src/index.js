@@ -21,13 +21,14 @@ import App from './components/App'
 import Welcome from './components/Welcome'
 
 
+const endpoint = `//pimenta.telefunken.co:${process.env.PORT || 4001}/game`
 
 
 
 
 // define initial state 
 const initialState = {
-  endpoint: 'localhost:4001/game',
+  endpoint: endpoint,
   room: {
     name: '',
     deck: [], // initial cards
