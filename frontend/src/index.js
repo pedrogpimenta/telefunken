@@ -20,11 +20,7 @@ import * as serviceWorker from './serviceWorker'
 import App from './components/App'
 import Welcome from './components/Welcome'
 
-
 const endpoint = `//telefunken.pimenta.co/game`
-
-
-
 
 // define initial state 
 const initialState = {
