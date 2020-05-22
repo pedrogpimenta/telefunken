@@ -10,7 +10,6 @@ function Player(props) {
 
   return (
     <div className="relative inline-flex flex-col items-start p-2">
-
       <div className="mx-2">
         {isCurrentPlayer &&
           <strong>
@@ -25,7 +24,6 @@ function Player(props) {
           location='user'
           handleCardDrop={(location, e) => props.handleCardDrop(location, e)}
           onClick={props.handleCardClick}
-          // handleHandUpdate={props.handleHandUpdate}
           sendToServer={(action, content) => props.sendToServer(action, content)}
         />
       </div>

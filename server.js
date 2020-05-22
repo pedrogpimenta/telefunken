@@ -116,71 +116,6 @@ const initNewGame = function(roomId) {
   })
 }
 
-// handle buying
-const handleBuying = (gameId, username) => {
-  let currentGameDb = {...dbTools.getGameDb(gameId)}
-  const someoneWantsItBefore = currentGameDb.someoneWantsItBefore
-
-  console.log('start handle buying for:', username)
-  console.log('someoneWantsItBefore:', someoneWantsItBefore)
-
-  if (!!someoneWantsItBefore && someoneWantsItBefore !== username) { return false }
-
-  console.log('no one wanted it before:', username)
-
-  // console.log('handleBuying currentGameDb.discard:', currentGameDb.discard)
-
-  let currentDiscard = currentGameDb.discard.slice()
-  const playerIndex = currentGameDb.players.findIndex(player => player.username === username)
-  let hiddenCardsWereBought = currentGameDb.hiddenCardsWereBought || false
-
-  if (currentGameDb.currentTurn === 1) {
-    console.log('turn 1')
-    console.log('currentDiscard lengthj:', currentDiscard.length)
-    hiddenCardsWereBought = true
-
-    for (let card in currentDiscard) {
-      console.log('currentDiscard card:', card)
-      const newCard = currentDiscard[card]
-      currentGameDb.players[playerIndex].hand.push(newCard)
-    }
-
-    currentDiscard.splice(0, 3)
-
-  } else {
-    console.log('not turn 1')
-    // let currentDiscard = currentGameDb.discard.slice()
-    let newCard = currentDiscard[currentDiscard.length - 1]
-
-    currentDiscard.splice(currentDiscard.length - 1, 1)
-    currentGameDb.players[playerIndex].hand.push(newCard)
-  }
-
-  const result = dbTools.getCardsFromStock(gameId, 1)
-
-  for (let i in result.cards) {
-    currentGameDb.players[playerIndex].hand.push(result.cards[i]) 
-  }
-
-  dbTools.setGameDb(gameId, {
-    stock: result.newStock,
-    discard: currentDiscard,
-    aPlayerHasBoughtThisTurn: true,
-    hiddenCardsWereBought: hiddenCardsWereBought,
-    player: {
-      username: currentGameDb.players[playerIndex].username,
-      hand: currentGameDb.players[playerIndex].hand
-    }
-  }) 
-
-  game.to(gameId).emit('player wants to buy', false)
-
-  currentGameDb = dbTools.getGameDb(gameId)
-
-  //sendUserInfo(gameId, username)
-  //sendGameInfo(gameId, currentGameDb) 
-}
-
 // HELPER: send user info
 // const sendUserInfo = function(gameId, username) {
 //   telefunkenDb.collection(ROOMS_COLLECTION).findOne({
@@ -316,6 +251,11 @@ game.on('connection', function(socket) {
     playerWantsToBuy: '',
     playerWantsItBefore: '',
     playerHasBought: false,
+    pauseTime: 30,
+    cooldownTime: 5,
+    alsoWants: [],
+    plililili: '',
+    plilililo: []
   }
 
   // check if room exists
@@ -525,7 +465,7 @@ game.on('connection', function(socket) {
           roomObject.prevPlayer = prevPlayer
           roomObject.currentPlayer = nextPlayer
           roomObject.currentPlayerHasGrabbedCard = false
-          roomObject.currentTurn = currentTurn + 1
+          roomObject.rounds[roomObject.rounds.length - 1].currentTurn = currentTurn + 1
           roomObject.aPlayerHasBoughtThisTurn = false
           roomObject.someoneWantsItBefore = false
         }
@@ -558,43 +498,217 @@ game.on('connection', function(socket) {
 
   });
 
-  socket.on('player buys', function(gameId, username) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+  socket.on('player buys', function(roomId, username) {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      // stop if someone already bought on this turn
+      if (roomObject.aPlayerHasBoughtThisTurn) { return false }
 
-    // stop if someone already bought on this turn
-    if (thisGameDb.aPlayerHasBoughtThisTurn) { return false }
+      const playerIndex = roomObject.players.findIndex(player => player.name === username)
+      let hiddenCardsWereBought = roomObject.hiddenCardsWereBought || false
 
-    console.log(`${username} wants to buy`)
+      if (roomObject.rounds[roomObject.rounds.length - 1].currentTurn === 1) {
+        roomObject.hiddenCardsWereBought = true
+    
+        for (let card in roomObject.discard) {
+          const newCard = roomObject.discard[card]
+          roomObject.players[playerIndex].hand.push(newCard)
+        }
+    
+        roomObject.discard.splice(0, 3)
+    
+      } else {
+        // let currentDiscard = currentGameDb.discard.slice()
+        let newCard = roomObject.discard[roomObject.discard.length - 1]
+    
+        roomObject.discard.splice(roomObject.discard.length - 1, 1)
+        roomObject.players[playerIndex].hand.push(newCard)
+      }
+      // helper: get cards from stock
+      const getCardsFromStock = (n) => {
+        const cards = roomObject.stock.splice(roomObject.stock.length - n, n)
+        return cards
+      }
+         
+      const result = getCardsFromStock(1)
+    
+      for (let i in result.cards) {
+        roomObject.players[playerIndex].hand.push(result.cards[i]) 
+      }
 
-    dbTools.setGameDb(gameId, {
-      playerIsBuying: username
-    }) 
 
-    if (thisGameDb.currentPlayer === username) {
-      handleBuying(gameId, username)
-    } else {
-      game.to(gameId).emit('player wants to buy', username)
 
-      setTimeout(() => {handleBuying(gameId, username)}, 10000)
-    }
+
+      clearInterval(global.timer)
+      roomObject.playerPausedGame = null
+      roomObject.remainingTime = 0
+
+      const updateDoc = { $set: roomObject }
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          sendGameInfo(roomId)
+        }
+      })
+    })
   })
 
-  socket.on('i want it before', function(gameId, username) {
-    let thisGameDb = {...dbTools.getGameDb(gameId)}
+  socket.on('player also wants', function (roomId, username) {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
 
-    console.log('i want it before:', username)
+      let updateDoc = {}
+      const thisPlayerPriorityIndex = roomObject.playersByPriority.findIndex(player => player === username)
 
-    dbTools.setGameDb(gameId, {
-      someoneWantsItBefore: username
-    }) 
+      updateDoc = {
+        $push: {
+          alsoWants: {
+            $each: [{ name: username, priority: thisPlayerPriorityIndex }],
+            $sort: { priority: 1 }
+          }
+        }
+      }
 
-    if (thisGameDb.currentPlayer === username) {
-      handleBuying(gameId, username)
-    } else {
-      game.to(gameId).emit('player wants to buy', username)
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        }
+      })
+    })
+  })
 
-      setTimeout(() => {handleBuying(gameId, username)}, 10000)
-    }
+  socket.on('player cancels pause', function(roomId, username) {
+    
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      
+      clearInterval(global.timer)
+      roomObject.playerPausedGame = null
+      roomObject.remainingTime = 0
+      
+      if (roomObject.alsoWants.length > 0) {
+        handlePlayerPause(roomId, roomObject.alsoWants[0].name)
+      }
+
+      const updateDoc = {
+        $set: { playerPausedGame: null, remainingTime: 0 },
+        $pop: { alsoWants: -1 }
+      }
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          sendGameInfo(roomId)
+        }
+      })
+    })
+  })
+
+  const handlePlayerPause = (roomId, username) => {
+    telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+      name: roomId
+    }).then(roomObject => {
+      // stop if someone already bought on this turn
+      if (roomObject.aPlayerHasBoughtThisTurn) { return false }
+
+      // roomObject.playerPausedGame = username
+      // roomObject.alsoWants = []
+
+      // handle game pause 
+      const pauseCountdown = (pauseTime) => {
+        telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+          name: roomId
+        }).then(roomObject => {
+          // roomObject.remainingTime = roomObject.remainingTime - 1
+          // const remainingTime = roomObject.remainingTime > 0 ? roomObject.remainingTime : roomObject.pauseTime
+          
+          let updateDoc = {}
+
+          if (pauseTime > 0) {
+            updateDoc = {
+              $set: {
+                remainingTime: pauseTime,
+                playerPausedGame: username
+              }
+            }
+          } else {
+            updateDoc = {
+              $set: {
+                remainingTime: roomObject.remainingTime - 1,
+                playerPausedGame: username
+              }
+            }
+            // Check if we're at zero.
+            if (roomObject.remainingTime === 0) { 
+              clearInterval(global.timer)
+              // roomObject.playerPausedGame = null
+              updateDoc = {
+                $set: {
+                  remainingTime: 0,
+                  playerPausedGame: null
+                }
+              }
+            }
+          }
+
+          telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+            name: roomId
+          }, updateDoc, function(err, doc) {
+            if (err)  {
+              // TODO: hanlde error
+            } else {
+              sendGameInfo(roomId)
+            }
+          })
+        })
+      }
+      
+      const startPauseTimer = () => {
+        clearInterval(global.timer)
+        pauseCountdown(roomObject.pauseTime)
+        global.timer = setInterval(pauseCountdown, 1000)
+      }
+
+      startPauseTimer()
+
+      const playersByPriority = []
+      const numberOfPlayers = roomObject.players.length
+      playersByPriority.push(roomObject.currentPlayer)
+      currentPlayerIndex = roomObject.players.map(player => player.name === roomObject.currentPlayer)
+      let thisPlayerIndex = tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)
+
+      for (let i = 0; i < (numberOfPlayers - 1); i++) {
+        playersByPriority.push(roomObject.players[thisPlayerIndex].name)
+        thisPlayerIndex = tools.getNextPlayer(roomObject.players, roomObject.players[thisPlayerIndex].name)
+      }
+
+      roomObject.playersByPriority = playersByPriority
+
+      const updateDoc = { $set: { playersByPriority: playersByPriority} }
+      telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+        name: roomId
+      }, updateDoc, function(err, doc) {
+        if (err)  {
+          // TODO: hanlde error
+        } else {
+          sendGameInfo(roomId)
+        }
+      })
+    })
+  }
+
+  socket.on('player pauses', function(roomId, username) {
+    handlePlayerPause(roomId, username)
   })
 
   socket.on('start new round', function(roomId) {

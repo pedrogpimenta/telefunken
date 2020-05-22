@@ -12,13 +12,6 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}\\server.js"
-        },
-        {
-            "name": "Run Frontend",
-            "type": "firefox",
-            "request": "attach",
-            "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}/frontend",
         }
     ]
 }

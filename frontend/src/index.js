@@ -51,7 +51,8 @@ const initialState = {
   fromGroup: 'none',
   toGroup: 'none',
   minusOne: 0,
-  playerWantsToBuy: ''
+  playerWantsToBuy: '',
+  timer: 0
 }
 
 // define reducers
@@ -73,7 +74,8 @@ function reducer(state = initialState, action) {
     case 'UPDATE_GAME':
       return {
         ...state,
-        room: action.value
+        room: action.value,
+        // turnCooldown: state.room.cooldownTime
       }
     case 'UPDATE_USER_INFO':
       return {
@@ -84,15 +86,7 @@ function reducer(state = initialState, action) {
               {...player, hand: action.hand} : player
             )
         }
-        }
-        // user: {
-        //   ...state.user,
-        //   id: action.id || state.user.id,
-        //   username: action.username || state.user.username,
-        //   isOnline: action.isOnline || state.user.isOnline,
-        //   hand: action.hand || state.hand
-        // }
-        // }
+      }
     case 'UPDATE_TABLE':
       return {
         ...state,
@@ -166,7 +160,13 @@ function reducer(state = initialState, action) {
         ...state,
         cardMovement: null
       }
-      
+
+    case 'UPDATE_COOLDOWN_TIME':
+      return {
+        ...state,
+        turnCooldown: action.turnCooldown
+      }
+
     default:
       return state;
   }
