@@ -14350,12 +14350,12 @@ video {
   margin-left: -3.5rem;
 }
 
-.tableGroupSm > div > div ~ div {
-  margin-left: -2.6rem;
+.tableGroupSm {
+  padding-right: 2.3rem;
 }
 
-.tableGroupMd > div > div ~ div {
-  margin-left: -3.3rem;
+.tableGroupMd {
+  padding-right: 3.3rem;
 }
 
 @media (min-width: 640px) {
@@ -28087,12 +28087,12 @@ video {
     margin-left: -3.5rem;
   }
 
-  .sm\:tableGroupSm > div > div ~ div {
-    margin-left: -2.6rem;
+  .sm\:tableGroupSm {
+    padding-right: 2.3rem;
   }
 
-  .sm\:tableGroupMd > div > div ~ div {
-    margin-left: -3.3rem;
+  .sm\:tableGroupMd {
+    padding-right: 3.3rem;
   }
 }
 
@@ -41825,12 +41825,12 @@ video {
     margin-left: -3.5rem;
   }
 
-  .md\:tableGroupSm > div > div ~ div {
-    margin-left: -2.6rem;
+  .md\:tableGroupSm {
+    padding-right: 2.3rem;
   }
 
-  .md\:tableGroupMd > div > div ~ div {
-    margin-left: -3.3rem;
+  .md\:tableGroupMd {
+    padding-right: 3.3rem;
   }
 }
 
@@ -55563,12 +55563,12 @@ video {
     margin-left: -3.5rem;
   }
 
-  .lg\:tableGroupSm > div > div ~ div {
-    margin-left: -2.6rem;
+  .lg\:tableGroupSm {
+    padding-right: 2.3rem;
   }
 
-  .lg\:tableGroupMd > div > div ~ div {
-    margin-left: -3.3rem;
+  .lg\:tableGroupMd {
+    padding-right: 3.3rem;
   }
 }
 
@@ -69301,11 +69301,11 @@ video {
     margin-left: -3.5rem;
   }
 
-  .xl\:tableGroupSm > div > div ~ div {
-    margin-left: -2.6rem;
+  .xl\:tableGroupSm {
+    padding-right: 2.3rem;
   }
 
-  .xl\:tableGroupMd > div > div ~ div {
-    margin-left: -3.3rem;
+  .xl\:tableGroupMd {
+    padding-right: 3.3rem;
   }
 }
