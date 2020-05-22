@@ -128,7 +128,71 @@ class App extends Component {
 
     // this means FROM and TO are set, do DB things
     if (this.props.cardMovement?.fromPosition >= 0 && this.props.cardMovement?.toPosition >= 0) {
+      
+      let card = {}
+      const playerIndex = this.props.room.players.findIndex(player => player.name === this.props.user.username)
+      const playerHand = this.props.room.players[playerIndex].hand
+      const newTable = this.props.room.table
+      
+      if (this.props.cardMovement?.from === 'player') {
+        card = playerHand[this.props.cardMovement?.fromPosition]
+        playerHand.splice(this.props.cardMovement.fromPosition, 1)
+      } else {
+        const groupId = this.props.room.table.findIndex(group => group.id === this.props.cardMovement?.from)
+        
+        card = newTable[groupId].cards[this.props.cardMovement?.fromPosition]
+        newTable[groupId].cards.splice(this.props.cardMovement?.fromPosition, 1)
+        
+        if (newTable[groupId].cards.length === 0) {
+          newTable.splice(groupId, 1)
+        }
+      }
+      
+      if (this.props.cardMovement?.to === 'player') {
+        playerHand.splice(this.props.cardMovement.toPosition, 0, card)
+        
+        this.props.dispatch({
+          type: "UPDATE_USER_HAND",
+          value: playerHand
+        }) 
+      } else if (this.props.cardMovement?.to === 'discard') {
+        const newDiscard = this.props.room.discard
+        newDiscard.push(card)
+        
+        this.props.dispatch({
+          type: "UPDATE_DISCARD",
+          value: newDiscard
+        }) 
+      } else if (this.props.cardMovement?.to === 'table') {
+        const newGroup = {
+          cards: [card]
+        }
+    
+        newTable.push(newGroup)
+        
+        this.props.dispatch({
+          type: "UPDATE_TABLE",
+          value: newTable
+        }) 
+      } else {
+        const groupId = this.props.room.table.findIndex(group => group.id === this.props.cardMovement?.to)
+        
+        newTable[groupId].cards.splice(this.props.cardMovement?.toPosition, 0, card)
+        
+        this.props.dispatch({
+          type: "UPDATE_TABLE",
+          value: newTable
+        }) 
+      }
+      
+      
+      
+      
       this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
+      
+
+
+
 
       // remove previous drop info
       this.props.dispatch({

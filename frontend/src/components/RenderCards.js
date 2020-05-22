@@ -111,7 +111,11 @@ class RenderCards extends Component {
                 onDrop={(e) => {this.props.handleCardDrop(this.props.id, e)}}
               >
                 {this.props.cards.map((card, index) => (
-                  <Draggable key={index} className="inline-flex">
+                  <Draggable
+                    key={index}
+                    className="inline-flex w-8"
+                    // style={{width: '1.5rem'}}
+                  >
                     <PlayingCard
                       key={card.id}
                       id={card.id}

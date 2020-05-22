@@ -57,11 +57,11 @@
     margin-left: -3.5rem;
   }
 
-  .tableGroupSm > div > div ~ div {
-    margin-left: -2.6rem;
+  .tableGroupSm {
+    padding-right: 2.3rem;
   }
 
-  .tableGroupMd > div > div ~ div {
-    margin-left: -3.3rem;
+  .tableGroupMd {
+    padding-right: 3.3rem;
   }
 }

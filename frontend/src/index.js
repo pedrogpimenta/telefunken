@@ -54,12 +54,15 @@ const initialState = {
 
 // define reducers
 function reducer(state = initialState, action) {
+  const newState = {...state}
+
   switch(action.type) {
     case 'SET_GAMEID':
       return {
         ...state,
         gameId: action.gameId
       }
+
     case 'SET_USERNAME':
       return {
         ...state,
@@ -68,12 +71,13 @@ function reducer(state = initialState, action) {
           username: action.username
         }
       }
+
     case 'UPDATE_GAME':
       return {
         ...state,
         room: action.value,
-        // turnCooldown: state.room.cooldownTime
       }
+
     case 'UPDATE_USER_INFO':
       return {
         ...state,
@@ -84,60 +88,17 @@ function reducer(state = initialState, action) {
             )
         }
       }
-    case 'UPDATE_TABLE':
-      return {
-        ...state,
-        room: {
-          ...state.room,
-          table: action.table
-        }
-      }
+    
     case 'USER_IS_DRAGGING':
       return {
         ...state,
         userIsDragging: true
       }
+
     case 'USER_IS_NOT_DRAGGING':
       return {
         ...state,
         userIsDragging: false
-      }
-
-    case 'SAVE_CARD':
-      return {
-        ...state,
-        savedCard: action.card
-      }
-    case 'SAVE_GROUP_TO':
-      return {
-        ...state,
-        toGroup: action.group
-      }
-    case 'SAVE_GROUP_FROM':
-      return {
-        ...state,
-        fromGroup: action.group
-      }
-    case 'SAVE_GROUP_TO_INDEX':
-      return {
-        ...state,
-        savedGroupToIndex: action.savedGroupToIndex
-      }
-    case 'SAVE_GROUP_FROM_INDEX':
-      return {
-        ...state,
-        savedGroupFromIndex: action.savedGroupFromIndex
-      }
-    case 'SAVE_GROUP_TO_MINUS_ONE':
-      return {
-        ...state,
-        savedGroupFromMinusOne: action.minusOne
-      }
-    case 'PLAYER_WANTS_TO_BUY':
-    console.log('reducer want to buy')
-      return {
-        ...state,
-        playerWantsToBuy: action.value
       }
 
     case 'MOVEMENT_INFO':
@@ -157,6 +118,16 @@ function reducer(state = initialState, action) {
         ...state,
         cardMovement: null
       }
+
+    case 'UPDATE_DISCARD':
+      newState.room.discard = action.value
+
+      return newState
+
+    case 'UPDATE_TABLE':
+      newState.room.table = action.value
+
+      return newState
 
     case 'UPDATE_COOLDOWN_TIME':
       return {
