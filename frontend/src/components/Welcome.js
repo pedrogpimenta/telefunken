@@ -48,9 +48,16 @@ class Welcome extends Component {
 
     return (
       <div style={{ textAlign: "center" }}>
-        <h2>Welcome!</h2>
+        {!!this.state.username.length &&
+          <h2>¿Qué pasa, pisha?</h2>
+        }
+        {!this.state.username.length &&
+          <h2>¡Holi, soy el Telecutren!</h2>
+        }
         <form action="submit">
-          <p>What's your name?</p>
+          {!this.state.username.length &&
+            <p>¿Y tú quién eres?</p>
+          }
           <Input
             type="text"
             id="welcome__input--username"
@@ -58,7 +65,7 @@ class Welcome extends Component {
             value={this.state.username}
             onChange={() => handleUsernameInputChange()}
           />
-          <p>Name a game:</p>
+          <p>¿Dónde dices que vas?</p>
           <Input
             type="text"
             id="welcome__input--gameId"
@@ -68,10 +75,10 @@ class Welcome extends Component {
           />
           <p>
             <Button
-              classes="m-2"
+              classes="m-2 border-primary-600 bg-primary-300 text-white font-bold"
               onClick={(e) => handleGoButton(e)}
             >
-              Go!
+              Entrar
             </Button>
           </p>
         </form>

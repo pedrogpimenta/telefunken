@@ -21,6 +21,7 @@ import App from './components/App'
 import Welcome from './components/Welcome'
 
 const endpoint = `//telefunken.pimenta.co/game`
+// const endpoint = `//localhost:4001/game`
 
 // define initial state 
 const initialState = {

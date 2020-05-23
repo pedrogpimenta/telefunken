@@ -7,7 +7,7 @@ class Button extends Component {
     attributes['disabled'] = this.props.disabled ? 'disabled' : null
 
     const disabledClasses = this.props.disabled ? 'opacity-50 cursor-not-allowed' : ''
-    const classes = `border border-solid border-red-600 hover:border-red-800 bg-red-600 hover:bg-red-800 text-white rounded-full py-1 px-8 ${disabledClasses}`
+    const classes = `border-3 border-solid rounded-full py-1 px-6 ${disabledClasses}`
     const styles = this.props.classes ? classes + ' ' + this.props.classes : classes
 
     return (

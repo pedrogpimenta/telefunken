@@ -337,10 +337,10 @@ class App extends Component {
               ))}
             </ul>
             <Button
-              classes="m-2"
+              classes="m-2 border-primary-600 bg-primary-300 text-white font-bold"
               onClick={(e) => this.handleStartGameButton(e)}
             >
-              Start game!
+            ¡Empezar!
             </Button>
           </div>
         }
@@ -403,29 +403,31 @@ class App extends Component {
     }
 
     return (
-      <div className='absolute right-0 mb-2 mr-2 w-64 rounded p-2 bg-blue-400 text-white z-50' style={{bottom: '100%'}}>
+      <div className='absolute right-0 mb-2 mr-2 w-64 rounded-lg border-3 border-solid border-primary-600 bg-primary-300 text-white z-50' style={{bottom: '100%'}}>
         {thisUserPaused && !isBuyingDisabled &&
           <div className='flex flex-col items-center'>
             {this.isThisUserTurn() &&
-              <div className='text-center'>Es tu turno, ¿Quieres comprar?</div>
+              <div className='w-full p-2 text-center border-b-2 border-primary-600'>Es tu turno, ¿estás seguro?</div>
             }
             {!this.isThisUserTurn() &&
-              <div className='text-center'>¿Quieres comprar?</div>
+              <div className='w-full p-2 text-center border-b-2 border-primary-600'>¿Quieres comprar?</div>
             }
-            <Button
-              classes='my-2 w-full'
-              onClick={(e) => {this.handleBuying(e)}}
-            >
-              ¡¡Siiiiiii!!
-            </Button>
-            <Button
-              classes='w-full'
-              onClick={(e) => {this.cancelPause(e)}}
-            >
-              Al final no
-            </Button>
+            <div className='m-3'>
+              <Button
+                classes='mb-3 w-full font-bold text-primary-600 bg-white border-primary-600'
+                onClick={(e) => {this.handleBuying(e)}}
+              >
+                ¡Si! Me sobra la pasta
+              </Button>
+              <Button
+                classes='w-full border-2 font-bold bg-primary-600 border-primary-600'
+                onClick={(e) => {this.cancelPause(e)}}
+              >
+                No, paso
+              </Button>
+            </div>
             {!userHasPriority()  &&
-              <div className='text-xs mt-1'>
+              <div className='text-xs py-2 px-3 border-t-2 border-solid border-primary-600'>
                 Sólo podrás comprar si estas personas no quieren:
                 <strong>
                   {this.props.room.playersByPriority.map((player, index) => {
@@ -446,16 +448,16 @@ class App extends Component {
         }
         {!thisUserPaused &&
           <div className='flex flex-col items-center'>
-            <div className='text-center'>
+            <div className='w-full p-2 text-center border-b-2 border-primary-600'>
               <strong>{this.props.room.playerPausedGame}</strong> se lo está pensando
             </div>
             {userHasPriority() && !isBuyingDisabled &&
-              <div>
+              <div className='m-3'>
                 <Button
-                  classes='my-2 w-full'
+                  classes='w-full font-bold text-primary-600 bg-white border-primary-600'
                   onClick={(e) => {this.handlePauseButton(e)}}
                 >
-                  No, ¡yo compro!
+                  Ni hablar... ¡Es mía!
                 </Button>
                 {/* <Button
                   classes='mx-2 w-full'
@@ -466,9 +468,9 @@ class App extends Component {
               </div>
             }
             {!userHasPriority() && !isBuyingDisabled &&
-              <div>
+              <div className='m-3'>
                 <Button
-                  classes='mx-2 my-2 w-full'
+                  classes='w-full font-bold text-primary-600 bg-white border-primary-600'
                   onClick={(e) => {this.handleAlsoWants(e)}}
                 >
                   Yo también quiero!
@@ -476,7 +478,7 @@ class App extends Component {
               </div>
             }
             {!userHasPriority() && !isBuyingDisabled &&
-              <div className='text-xs mt-1'>
+              <div className='text-xs py-2 px-3 border-t-2 border-solid border-primary-600'>
                 Sólo podrás comprar si estas personas al final no compran:
                 <strong>
                   {this.props.room.playersByPriority.map((player, index) => {
@@ -508,14 +510,14 @@ class App extends Component {
     const isGamePaused = !!playerPausedGame
 
     return (
-      <div className="absolute right-0 top-0">
+      <div className="absolute right-0 top-0 -mt-2">
         {!isGamePaused &&
           <Button
             disabled={isPauseButtonDisabled}
-            classes='mx-2'
+            classes='mx-2 font-bold bg-primary-300 border-primary-600 text-white'
             onClick={(e) => {this.handlePauseButton(e)}}
           >
-            ¡Un momento!
+            ¡Arriba las manos!
           </Button>
         }
         {isGamePaused && this.renderPausePopup()}
