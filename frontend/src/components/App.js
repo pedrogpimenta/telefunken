@@ -220,7 +220,7 @@ class App extends Component {
                 classes='mx-2'
                 onClick={(e) => {this.handleNewRoundButton(e)}}
               >
-                Nueva ronda!
+                ¡Nueva batalla!
               </Button>
             </div>
           }
@@ -328,7 +328,7 @@ class App extends Component {
         {!!this.props.room.gameHasStarted && this.renderStock()}
         {!this.props.room.gameHasStarted &&
           <div> 
-            <p>Jugadores:</p>
+            <p>Hoy en combate:</p>
             <ul>
               {this.props.room.connectedUsers.map(user => (
                 <li key={`userList-${user.id}`}>
@@ -340,7 +340,7 @@ class App extends Component {
               classes="m-2 border-primary-600 bg-primary-300 text-white font-bold"
               onClick={(e) => this.handleStartGameButton(e)}
             >
-            ¡Empezar!
+              ¡A patear culos!
             </Button>
           </div>
         }

@@ -61,7 +61,7 @@ class Welcome extends Component {
           <Input
             type="text"
             id="welcome__input--username"
-            placeholder="Enter name"
+            placeholder="Dime tu nombre"
             value={this.state.username}
             onChange={() => handleUsernameInputChange()}
           />
@@ -69,7 +69,7 @@ class Welcome extends Component {
           <Input
             type="text"
             id="welcome__input--gameId"
-            placeholder="Enter game ID"
+            placeholder="Dime la sala"
             value={this.state.gameId}
             onChange={() => handleGameIdInputChange()}
           />
@@ -78,7 +78,7 @@ class Welcome extends Component {
               classes="m-2 border-primary-600 bg-primary-300 text-white font-bold"
               onClick={(e) => handleGoButton(e)}
             >
-              Entrar
+              Pa' dentro
             </Button>
           </p>
         </form>
