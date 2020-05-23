@@ -47,7 +47,10 @@ class Welcome extends Component {
     console.log('state.username:', this.state.username)
 
     return (
-      <div style={{ textAlign: "center" }}>
+      <div style={{
+        textAlign: "center",
+        marginTop: "1rem"
+      }}>
         {!!this.state.username.length &&
           <h2>¿Qué pasa, pisha?</h2>
         }
@@ -65,7 +68,9 @@ class Welcome extends Component {
             value={this.state.username}
             onChange={() => handleUsernameInputChange()}
           />
-          <p>¿Dónde dices que vas?</p>
+          <p style={{
+            marginTop: ".5rem"
+          }}>¿Dónde dices que vas?</p>
           <Input
             type="text"
             id="welcome__input--gameId"
@@ -75,13 +80,25 @@ class Welcome extends Component {
           />
           <p>
             <Button
-              classes="m-2 border-primary-600 bg-primary-300 text-white font-bold"
+              classes="m-2 mt-4 border-primary-600 bg-primary-300 text-white font-bold"
               onClick={(e) => handleGoButton(e)}
             >
               Pa' dentro
             </Button>
           </p>
         </form>
+        <div
+          style={{
+            display: "inline-block",
+            textAlign: "center",
+            width: "50%",
+            borderRadius: '6px',
+            marginTop: '1rem',
+            overflow: 'hidden'
+          }}
+        >
+          <img src="/foto1.jpg" alt="Logo" />
+        </div>
       </div>
     )
   }
