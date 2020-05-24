@@ -451,7 +451,8 @@ game.on('connection', function(socket) {
 
         if (roomObject.players[playerIndex].hand.length === 0) {
           roomObject.currentRoundEnded = true
-          roomObject.prevPlayer = null
+          // roomObject.prevPlayer = null
+          roomObject.aPlayerHasBoughtThisTurn = false
         // } else if (roomObject.players[playerIndex].hand.length === 1) {
         //   if (roomObject.players[playerIndex].hand[0].id === card.id) {
         //     roomObject.currentRoundEnded = true
@@ -466,7 +467,6 @@ game.on('connection', function(socket) {
           roomObject.currentPlayerHasGrabbedCard = false
           roomObject.rounds[roomObject.rounds.length - 1].currentTurn = currentTurn + 1
           roomObject.aPlayerHasBoughtThisTurn = false
-          roomObject.someoneWantsItBefore = false
         }
       } else if (cardMovement.to === 'table') {
         const newGroup = {
