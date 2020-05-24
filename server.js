@@ -92,8 +92,9 @@ const initNewGame = function(roomId) {
       })
       // put users on players 
       roomObject.players = players
-      const nextPlayerIndex = tools.getNextPlayer(players, roomObject.currentPlayer)
-      roomObject.currentPlayer = players[nextPlayerIndex].name
+      const nextPlayerIndex = tools.getNextPlayer(players, roomObject.firstPlayer)
+      roomObject.currentPlayer = roomObject.players[nextPlayerIndex].name
+      roomObject.firstPlayer = roomObject.players[nextPlayerIndex].name
     }
 
     // set game has started
