@@ -50,7 +50,7 @@ class App extends Component {
     if (this.props.user.username !== this.props.room.currentPlayer) { return false }
 
     if (cardType === 'stock') {
-      if (this.props.room.currentPlayerHasGrabbedCard) { return false }
+      if (this.props.room.currentPlayerHasGrabbedCard || this.props.room.playerPausedGame) { return false }
 
       this.socket.emit('card from stock to user', this.props.room.name, this.props.user.username)
     }
