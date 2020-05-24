@@ -31,8 +31,6 @@ class RenderPlayers extends Component {
 
       }
 
-      if (player.name === this.props.user.username) { return false }
-
       return (
         <div className={styles} key={player.id}>
           <span className='mb-1'>
