@@ -100,6 +100,9 @@ const initNewGame = function(roomId) {
     // set game has started
     roomObject.gameHasStarted = true
 
+    // reset showing hidden cards
+    roomObject.hiddenCardsWereBought = false
+
     // set roomObject for mongo
     const updatedRoom = { $set: roomObject }
 
