@@ -253,9 +253,7 @@ game.on('connection', function(socket) {
     playerHasBought: false,
     pauseTime: 30,
     cooldownTime: 5,
-    alsoWants: [],
-    plililili: '',
-    plilililo: []
+    alsoWants: []
   }
 
   // check if room exists
@@ -506,7 +504,6 @@ game.on('connection', function(socket) {
       if (roomObject.aPlayerHasBoughtThisTurn) { return false }
 
       const playerIndex = roomObject.players.findIndex(player => player.name === username)
-      let hiddenCardsWereBought = roomObject.hiddenCardsWereBought || false
 
       if (roomObject.rounds[roomObject.rounds.length - 1].currentTurn === 1) {
         roomObject.hiddenCardsWereBought = true
@@ -533,8 +530,8 @@ game.on('connection', function(socket) {
          
       const result = getCardsFromStock(1)
     
-      for (let i in result.cards) {
-        roomObject.players[playerIndex].hand.push(result.cards[i]) 
+      for (let i in result) {
+        roomObject.players[playerIndex].hand.push(result[i]) 
       }
 
 
@@ -620,9 +617,6 @@ game.on('connection', function(socket) {
     }).then(roomObject => {
       // stop if someone already bought on this turn
       if (roomObject.aPlayerHasBoughtThisTurn) { return false }
-
-      // roomObject.playerPausedGame = username
-      // roomObject.alsoWants = []
 
       // handle game pause 
       const pauseCountdown = (pauseTime) => {
