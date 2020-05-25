@@ -210,7 +210,7 @@ class App extends Component {
     if (!this.props.room.gameHasStarted) { return false }
     return (
       <div className="relative z-20 inline-flex items-end justify-between border-b border-solid border-gray-300">
-        <div className="inline-flex flex-grow">
+        <div className="inline-flex flex-grow ml-2">
           <RenderPlayers players={this.props.room.players} />
         </div>
         <div className="inline-flex justify-center py-2">

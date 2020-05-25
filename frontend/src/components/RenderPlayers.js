@@ -10,7 +10,7 @@ class RenderPlayers extends Component {
 
     return this.props.room.players.map(player => {
       const isPlayerOnline = player.isOnline
-      const onlineClasses = "inline-flex flex-col items-start mx-2 sm:mx-4 my-2"
+      const onlineClasses = "inline-flex flex-col items-start mx-2 my-2"
       const offlineClasses = `${onlineClasses} opacity-75`
       const styles = isPlayerOnline ? onlineClasses : offlineClasses
 

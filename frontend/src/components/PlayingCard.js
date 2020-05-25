@@ -50,7 +50,10 @@ function PlayingCard(props) {
   const text = 'text-xl tracking-tighter'
   const sizeBg = 'w-12 md:w-16 h-16 md:h-20'
   const sizeSm = 'w-12 h-16'
+  const sizeXsm = 'w-10 h-12'
+
   const spacings = 'px-2 py-1 mx-2 my-2'
+  const spacingsXsm = 'px-2 py-1 ml-0 mr-4 my-2'
 
   // const baseCard = `relative overflow-hidden select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-start leading-none rounded border-2 border-solid ${cardBorderColour} ${cardColour}`
   const baseCard = `relative overflow-hidden select-none cursor-default inline-flex flex-col flex-shrink-0 items-center justify-start leading-none rounded ${cardColour}`
@@ -62,7 +65,7 @@ function PlayingCard(props) {
 
   const cardClasses = isCardHidden() ? cardBackClasses : cardDefaultClasses
 
-  const otherPlayerClasses = `${baseCard} ${sizeSm} ${spacings} ${text} justify-center bg-gray-300`
+  const otherPlayerClasses = `${baseCard} ${sizeXsm} ${spacingsXsm} ${text} justify-center bg-gray-300`
 
   const stockClasses = `${baseCard} ${sizeSm} ${stockClassesUngrabbed} px-2 py-1 mx-2 justify-center bg-gray-300 text-gray-700 text-l tracking-tight`
 
