@@ -20,8 +20,7 @@ import * as serviceWorker from './serviceWorker'
 import App from './components/App'
 import Welcome from './components/Welcome'
 
-const endpoint = `//telefunken.pimenta.co/game`
-// const endpoint = `//localhost:4001/game`
+const endpoint = process.env.SOCKET_ENDPOINT || '//localhost:4001/game'
 
 // define initial state 
 const initialState = {
