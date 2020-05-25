@@ -9,7 +9,7 @@ function Player(props) {
   const userHand = props.room.players[userIndex].hand
 
   return (
-    <div className="relative inline-flex flex-col items-start p-2">
+    <div className="relative inline-flex flex-col items-start w-full p-2">
       <div className="mx-2">
         {isCurrentPlayer &&
           <strong>
@@ -18,7 +18,7 @@ function Player(props) {
         }
         {!isCurrentPlayer && props.user.username}
       </div>
-      <div>
+      <div className="w-full">
         <RenderCards
           cards={userHand}
           location='user'
