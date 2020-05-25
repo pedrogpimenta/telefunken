@@ -20,7 +20,7 @@ import * as serviceWorker from './serviceWorker'
 import App from './components/App'
 import Welcome from './components/Welcome'
 
-const endpoint = process.env.REACT_APP_SOCKET_ENDPOINT || '//localhost:4001/game'
+const endpoint = process.env.REACT_APP_HEROKU_SOCKET_ENDPOINT || '//localhost:4001/game'
 
 // define initial state 
 const initialState = {
