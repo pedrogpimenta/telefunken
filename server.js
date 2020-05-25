@@ -431,57 +431,64 @@ game.on('connection', function(socket) {
       name: roomId
     }).then(roomObject => {
       const playerIndex = roomObject.players.findIndex(player => player.name === username)
+      const isCurrentPlayersTurn = roomObject.players[playerIndex].name === roomObject.currentPlayer
       let card = {}
 
-      if (cardMovement.from === 'player') {
+      if (cardMovement.from === 'player' && cardMovement.to === 'player' && !isCurrentPlayersTurn) {
         card = roomObject.players[playerIndex].hand[cardMovement.fromPosition]
         roomObject.players[playerIndex].hand.splice(cardMovement.fromPosition, 1)
-      } else {
-        const groupId = roomObject.table.findIndex(group => group.id === cardMovement.from)
-
-        card = roomObject.table[groupId].cards[cardMovement.fromPosition]
-        roomObject.table[groupId].cards.splice(cardMovement.fromPosition, 1)
-
-        if (roomObject.table[groupId].cards.length === 0) {
-          roomObject.table.splice(groupId, 1)
-        }
-      }
-
-      if (cardMovement.to === 'player') {
         roomObject.players[playerIndex].hand.splice(cardMovement.toPosition, 0, card)
-      } else if (cardMovement.to === 'discard') {
-        roomObject.discard.push(card)
-
-        if (roomObject.players[playerIndex].hand.length === 0) {
-          roomObject.currentRoundEnded = true
-          // roomObject.prevPlayer = null
-          roomObject.aPlayerHasBoughtThisTurn = false
-        // } else if (roomObject.players[playerIndex].hand.length === 1) {
-        //   if (roomObject.players[playerIndex].hand[0].id === card.id) {
-        //     roomObject.currentRoundEnded = true
-        //   }
+      } else if (isCurrentPlayersTurn) {
+        if (cardMovement.from === 'player') {
+          card = roomObject.players[playerIndex].hand[cardMovement.fromPosition]
+          roomObject.players[playerIndex].hand.splice(cardMovement.fromPosition, 1)
         } else {
-          const currentTurn = roomObject.rounds[roomObject.rounds.length - 1].currentTurn
-          const nextPlayer = roomObject.players[tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)].name
-          const prevPlayer = roomObject.currentPlayer
-        
-          roomObject.prevPlayer = prevPlayer
-          roomObject.currentPlayer = nextPlayer
-          roomObject.currentPlayerHasGrabbedCard = false
-          roomObject.rounds[roomObject.rounds.length - 1].currentTurn = currentTurn + 1
-          roomObject.aPlayerHasBoughtThisTurn = false
+          const groupId = roomObject.table.findIndex(group => group.id === cardMovement.from)
+  
+          card = roomObject.table[groupId].cards[cardMovement.fromPosition]
+          roomObject.table[groupId].cards.splice(cardMovement.fromPosition, 1)
+  
+          if (roomObject.table[groupId].cards.length === 0) {
+            roomObject.table.splice(groupId, 1)
+          }
         }
-      } else if (cardMovement.to === 'table') {
-        const newGroup = {
-          id: tools.guidGenerator(),
-          cards: [card]
+  
+        if (cardMovement.to === 'player') {
+          roomObject.players[playerIndex].hand.splice(cardMovement.toPosition, 0, card)
+        } else if (cardMovement.to === 'discard') {
+          roomObject.discard.push(card)
+  
+          if (roomObject.players[playerIndex].hand.length === 0) {
+            roomObject.currentRoundEnded = true
+            // roomObject.prevPlayer = null
+            roomObject.aPlayerHasBoughtThisTurn = false
+          // } else if (roomObject.players[playerIndex].hand.length === 1) {
+          //   if (roomObject.players[playerIndex].hand[0].id === card.id) {
+          //     roomObject.currentRoundEnded = true
+          //   }
+          } else {
+            const currentTurn = roomObject.rounds[roomObject.rounds.length - 1].currentTurn
+            const nextPlayer = roomObject.players[tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)].name
+            const prevPlayer = roomObject.currentPlayer
+          
+            roomObject.prevPlayer = prevPlayer
+            roomObject.currentPlayer = nextPlayer
+            roomObject.currentPlayerHasGrabbedCard = false
+            roomObject.rounds[roomObject.rounds.length - 1].currentTurn = currentTurn + 1
+            roomObject.aPlayerHasBoughtThisTurn = false
+          }
+        } else if (cardMovement.to === 'table') {
+          const newGroup = {
+            id: tools.guidGenerator(),
+            cards: [card]
+          }
+      
+          roomObject.table.push(newGroup)
+        } else {
+          const groupId = roomObject.table.findIndex(group => group.id === cardMovement.to)
+  
+          roomObject.table[groupId].cards.splice(cardMovement.toPosition, 0, card)
         }
-    
-        roomObject.table.push(newGroup)
-      } else {
-        const groupId = roomObject.table.findIndex(group => group.id === cardMovement.to)
-
-        roomObject.table[groupId].cards.splice(cardMovement.toPosition, 0, card)
       }
 
       const updateDoc = { $set: roomObject }

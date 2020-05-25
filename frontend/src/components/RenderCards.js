@@ -93,8 +93,8 @@ class RenderCards extends Component {
           })
       case 'table':
         if (!!this.props.cards) {
-          // const numberOfCards = this.props.cards.length
-          // const maxWidth = 100/numberOfCards + '%'
+          const willAcceptDrop = this.props.room.currentPlayer === this.props.user.username && this.props.room.currentPlayerHasGrabbedCard
+
           return (
             <div className="border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10 tableGroupSm md:tableGroupMd">
               <Container
@@ -104,7 +104,7 @@ class RenderCards extends Component {
                   flexWrap: 'wrap'
                 }}
                 orientation='horizontal'
-                groupName='droppable'
+                groupName={(willAcceptDrop && 'droppable') || ''}
                 dragBeginDelay={0}
                 onDragStart={(e) => {this.handleCardDragStart(this.props.id, e)}}
                 onDragEnd={(e) => {this.handleCardDragEnd(this.props.id, e)}}
