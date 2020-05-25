@@ -7,6 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
+    "build": "cd frontend && npm install && npm run build"
     "debug": "nodemon server.js"
   },
   "author": "",
@@ -21,6 +22,6 @@
     "nodemon": "^2.0.3"
   },
   "engines": {
-    "node": "12.16.x"
+    "node": "14.3.x"
   }
 }
