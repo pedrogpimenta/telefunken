@@ -19,7 +19,8 @@ function Content(props) {
     server: 'https://analytics.pimenta.co',
     domainId: '4c2a5b7b-03a4-4248-b6a6-3e13877d77af'
   }, {
-    ignoreLocalhost: false
+    ignoreLocalhost: false,
+    detailed: true
   })
 
   return (
