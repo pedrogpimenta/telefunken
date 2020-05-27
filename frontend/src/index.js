@@ -1,14 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom'
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route
-} from "react-router-dom"
+  BrowserRouter as Router
+} from 'react-router-dom'
 
 // redux for state
 import { createStore } from 'redux'
-import { Provider } from 'react-redux';
+import { Provider } from 'react-redux'
 
 // CSS & tailwind
 import './assets/main.css'
@@ -17,8 +15,7 @@ import './assets/main.css'
 import * as serviceWorker from './serviceWorker'
 
 // my components
-import App from './components/App'
-import Welcome from './components/Welcome'
+import Content from './components/Content'
 
 const endpoint = process.env.REACT_APP_HEROKU_SOCKET_ENDPOINT || '//localhost:4001/game'
 
@@ -142,20 +139,13 @@ function reducer(state = initialState, action) {
 
 // create store & enable redux dev tools
 const store = createStore(reducer, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
-
+  
 // root component
 const Root = () => {
   return (
     <Provider store={store}>
       <Router>
-        <Switch>
-          <Route path="/game/:gameId">
-            <App />
-          </Route>
-          <Route path="/">
-            <Welcome />
-          </Route>
-        </Switch>
+        <Content />
       </Router>
     </Provider>
   )
