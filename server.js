@@ -37,7 +37,7 @@ mongodb.MongoClient.connect(process.env.MONGODB_URI || 'mongodb://localhost:2701
 // ---------------------------------
 
 // start new game / round
-const initNewGame = function(roomId) {
+const initNewGame = function(gameId) {
 
   const cardsToPlayer = (deck, n) => {
     const cards = deck.splice(deck.length - n, n)
@@ -45,7 +45,7 @@ const initNewGame = function(roomId) {
   }
 
   telefunkenDb.collection(ROOMS_COLLECTION).findOne({
-    name: roomId
+    name: gameId
   }).then(roomObject => {
 
     // make new deck
@@ -108,14 +108,14 @@ const initNewGame = function(roomId) {
     const updatedRoom = { $set: roomObject }
 
     telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
-      name: roomId
+      name: gameId
     }, updatedRoom, function(err, doc) {
       if (err)  {
         // TODO: error message
-        game.to(roomId).emit('error')
+        game.to(gameId).emit('error')
       } else {
         // update game to users
-        sendGameInfo(roomId)
+        sendGameInfo(gameId)
       }
     })
   })
@@ -449,6 +449,45 @@ wss.on('connection', ws => {
 
         break;
 
+      case 'card from stock to user':
+        telefunkenDb.collection(ROOMS_COLLECTION).findOne({
+          name: gameId
+        }).then(roomObject => {
+          // stop if current player has already grabbed card
+          if (roomObject.currentPlayerHasGrabbedCard) { return false }
+
+          // helper: get cards from stock
+          const getCardsFromStock = (n) => {
+            const cards = roomObject.stock.splice(roomObject.stock.length - n, n)
+            return cards
+          }
+
+          // add cards to player hand
+          const thisPlayerIndex = roomObject.players.findIndex(player => player.name === clientName)
+          roomObject.players[thisPlayerIndex].hand = roomObject.players[thisPlayerIndex].hand.concat(getCardsFromStock(1))
+
+          // disable further getting new cards
+          roomObject.currentPlayerHasGrabbedCard = true
+
+          // get next player
+          nextPlayerIndex = tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)
+          roomObject.nextPlayer = roomObject.players[nextPlayerIndex].clientName
+
+          const updateDoc = { $set: roomObject }
+
+          telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
+            name: gameId
+          }, updateDoc, function(err, doc) {
+            if (err)  {
+              // TODO: hanlde error
+            } else {
+              sendGameInfo(gameId)
+            }
+          })
+        })
+
+        break;
+
       default:
         console.log('ERROR: no \'action\' defined')
     }
@@ -483,44 +522,6 @@ wss.on('connection', ws => {
 //   // ------------------- 
 
 /******* DONE UNTIL HERE ************/
-
-//   socket.on('card from stock to user', function(roomId, username) {
-//     telefunkenDb.collection(ROOMS_COLLECTION).findOne({
-//       name: roomId
-//     }).then(roomObject => {
-//       // stop if current player has already grabbed card
-//       if (roomObject.currentPlayerHasGrabbedCard) { return false }
-
-//       // helper: get cards from stock
-//       const getCardsFromStock = (n) => {
-//         const cards = roomObject.stock.splice(roomObject.stock.length - n, n)
-//         return cards
-//       }
-
-//       // add cards to player hand
-//       const thisPlayerIndex = roomObject.players.findIndex(player => player.name === username)
-//       roomObject.players[thisPlayerIndex].hand = roomObject.players[thisPlayerIndex].hand.concat(getCardsFromStock(1))
-
-//       // disable further getting new cards
-//       roomObject.currentPlayerHasGrabbedCard = true
-
-//       // get next player
-//       nextPlayerIndex = tools.getNextPlayer(roomObject.players, roomObject.currentPlayer)
-//       roomObject.nextPlayer = roomObject.players[nextPlayerIndex].username
-
-//       const updateDoc = { $set: roomObject }
-
-//       telefunkenDb.collection(ROOMS_COLLECTION).updateOne({
-//         name: roomId
-//       }, updateDoc, function(err, doc) {
-//         if (err)  {
-//           // TODO: hanlde error
-//         } else {
-//           sendGameInfo(roomId)
-//         }
-//       })
-//     })
-//   })
 
 //   socket.on('card movement', function(roomId, username, cardMovement) {
 //     telefunkenDb.collection(ROOMS_COLLECTION).findOne({

@@ -61,7 +61,13 @@ class App extends Component {
     if (cardType === 'stock') {
       if (this.props.room.currentPlayerHasGrabbedCard || this.props.room.playerPausedGame) { return false }
 
-      this.socket.emit('card from stock to user', this.props.room.name, this.props.user.username)
+      const data = {
+        action: 'card from stock to user',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username,
+      };
+
+      this.wsSend(data)
     }
   }
 
