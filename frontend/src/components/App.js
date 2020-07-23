@@ -17,6 +17,10 @@ class App extends Component {
   constructor () {
     super()
 
+    this.state = {
+      ws: null
+    };
+
     this.handleStartGameButton = this.handleStartGameButton.bind(this)
     this.handleCardClick = this.handleCardClick.bind(this)
     this.handleTableUpdate = this.handleTableUpdate.bind(this)
@@ -557,13 +561,23 @@ class App extends Component {
   // life cycle functions
   // ------------------- 
 
-  ws = new WebSocket(`ws://localhost:4001/`);
+  componentDidMount() {
+    this.connect()
 
-  wsSend = (message) => {
-    this.ws.send(JSON.stringify(message));
   }
 
-  componentDidMount() {
+  timeout = 250;
+
+  connect = () => {
+    const ws = new WebSocket(`ws://localhost:4001/`)
+    let that = this // cache the this
+    var connectInterval
+
+    this.setState({ ws: ws })
+    
+    that.timeout = 250 // reset timer to 250 on open of websocket connection 
+    clearTimeout(connectInterval) // clear Interval on on open of websocket connection
+
     // set gameID from path
     const gamePath = window.location.pathname.split('/')[2]
     this.props.dispatch({ type: "SET_GAMEID", gameId: gamePath })
@@ -580,12 +594,16 @@ class App extends Component {
       this.props.dispatch({ type: "SET_USERNAME", username: username })
     }
 
+
+    const wsSend = (message) => {
+      ws.send(JSON.stringify(message));
+    }
+
     // ------------------- 
     // socket functions
     // ------------------- 
 
-
-    this.ws.onopen = () => {
+    ws.onopen = () => {
       // on connecting, do nothing but log it to the console
       console.log('socket connected');
 
@@ -595,10 +613,10 @@ class App extends Component {
         clientName: this.props.user.username
       };
 
-      this.wsSend(data);
+      wsSend(data);
     }
   
-    this.ws.onmessage = evt => {
+    ws.onmessage = evt => {
       // listen to data sent from the websocket server
       const content = JSON.parse(evt.data)
       console.log('ws:', content.action);
@@ -632,12 +650,23 @@ class App extends Component {
 
     }
 
-    this.ws.onclose = () => {
-      console.log('socket disconnected');
-      // automatically try to reconnect on connection loss
-
-      // this.wsSend();
+    ws.onclose = (e) => {
+      console.log(
+        `Socket is closed. Reconnect will be attempted in ${Math.min(
+          10000 / 1000,
+          (that.timeout + that.timeout) / 1000
+        )} second.`,
+        e.reason
+      );
+        
+      that.timeout = that.timeout + that.timeout; //increment retry interval
+      connectInterval = setTimeout(check, Math.min(10000, that.timeout)); //call check function after timeout
     }
+    
+    const check = () => {
+      const { ws } = this.state;
+      if (!ws || ws.readyState == WebSocket.CLOSED) this.connect(); //check if websocket instance is closed, if so call `connect` function.
+    };
 
 
     // // socket connect
