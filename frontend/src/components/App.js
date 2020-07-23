@@ -46,7 +46,12 @@ class App extends Component {
   // ------------------- 
 
   handleStartGameButton() {
-    this.socket.emit('start game', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'start game',
+      gameId: this.props.gameId,
+    };
+
+    this.wsSend(data)
   }
 
   handleCardClick(cardType) {
@@ -561,12 +566,15 @@ class App extends Component {
   // life cycle functions
   // ------------------- 
 
-  componentDidMount() {
-    this.connect()
-
+  wsSend = (message) => {
+    this.state.ws.send(JSON.stringify(message))
   }
 
-  timeout = 250;
+  componentDidMount() {
+    this.connect()
+  }
+
+  timeout = 250
 
   connect = () => {
     const ws = new WebSocket(`ws://localhost:4001/`)
@@ -594,11 +602,6 @@ class App extends Component {
       this.props.dispatch({ type: "SET_USERNAME", username: username })
     }
 
-
-    const wsSend = (message) => {
-      ws.send(JSON.stringify(message));
-    }
-
     // ------------------- 
     // socket functions
     // ------------------- 
@@ -613,7 +616,7 @@ class App extends Component {
         clientName: this.props.user.username
       };
 
-      wsSend(data);
+      this.wsSend(data);
     }
   
     ws.onmessage = evt => {

@@ -438,8 +438,16 @@ wss.on('connection', ws => {
         
         break;
 
+      case 'start game':
+        console.log('on start game, gameId:', gameId)
+        initNewGame(gameId)
+
+        break;
+
       case 'disconnect':
         console.log('Player disconnected =>', clientName)
+
+        break;
 
       default:
         console.log('ERROR: no \'action\' defined')
@@ -475,12 +483,6 @@ wss.on('connection', ws => {
 //   // ------------------- 
 
 /******* DONE UNTIL HERE ************/
-
-//   // start game
-//   socket.on('start game', function(gameId, username) {
-//     console.log('on start game, gameId:', gameId)
-//     initNewGame(gameId)
-//   })
 
 //   socket.on('card from stock to user', function(roomId, username) {
 //     telefunkenDb.collection(ROOMS_COLLECTION).findOne({
