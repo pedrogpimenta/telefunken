@@ -233,14 +233,15 @@ const CLIENTS = [];
 
 const wsSendAll = content => {
   for (var i=0; i<CLIENTS.length; i++) {
-    CLIENTS[i].ws.send(content);
+    CLIENTS[i].ws.send(content)
   }
 }
 
 const wsSendToOne = (clientName, content) => {
   for (var i=0; i<CLIENTS.length; i++) {
     if (CLIENTS[i].clientName === clientName) {
-      CLIENTS[i].ws.send(JSON.stringify({action: content.action, data: content.data}));
+      console.log('### SEND TO PLAYER: ', clientName)
+      CLIENTS[i].ws.send(JSON.stringify({action: content.action, data: content.data}))
     }
   }
 }
@@ -255,22 +256,15 @@ wss.on('connection', ws => {
 
     const doesClientExist = (clientName) => {
       let clientExists = false
-      console.log('clientititos:', CLIENTS)
 
       for (let i in CLIENTS) {
-        console.log('client:', CLIENTS[i].clientName)
-
         if (CLIENTS[i].clientName === clientName) {
           clientExists = true
         }
       }
 
-      console.log('ola:', clientExists)
-
       return clientExists;
     }
-
-    // console.log('cosas:', doesClientExist())
 
     if (!doesClientExist(clientName)) {
       CLIENTS.push({
@@ -285,8 +279,6 @@ wss.on('connection', ws => {
         }
       }
     }
-
-    console.log(CLIENTS);
 
     switch (action) {
 
@@ -446,6 +438,8 @@ wss.on('connection', ws => {
         
         break;
 
+      case 'disconnect':
+        console.log('Player disconnected =>', clientName)
 
       default:
         console.log('ERROR: no \'action\' defined')
