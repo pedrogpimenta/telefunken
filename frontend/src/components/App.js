@@ -331,8 +331,8 @@ class App extends Component {
             <p>Hoy en combate:</p>
             <ul>
               {this.props.room.connectedUsers.map(user => (
-                <li key={`userList-${user.id}`}>
-                {user.name}
+                <li key={`userList-${user.name}`}>
+                  {user.name}
                 </li>
               ))}
             </ul>
@@ -557,6 +557,12 @@ class App extends Component {
   // life cycle functions
   // ------------------- 
 
+  ws = new WebSocket(`ws://localhost:4001/`);
+
+  wsSend = (message) => {
+    this.ws.send(JSON.stringify(message));
+  }
+
   componentDidMount() {
     // set gameID from path
     const gamePath = window.location.pathname.split('/')[2]
@@ -578,48 +584,88 @@ class App extends Component {
     // socket functions
     // ------------------- 
 
-    // socket connect
-    this.socket = io.connect(this.props.endpoint, { query: 'gameId='+gamePath })
 
-    // socket login
-    this.socket.emit('login', gamePath, username)
+    this.ws.onopen = () => {
+      // on connecting, do nothing but log it to the console
+      console.log('socket connected');
 
-    // receive user info
-    this.socket.on('updateUserInfo', (userInfo) => {
-      if (this.props.user.username === userInfo.username) {
-        this.props.dispatch({
-          type: "UPDATE_USER_INFO",
-          username: userInfo.username,
-          id: userInfo.id,
-          isOnline: userInfo.isOnline,
-          hand: userInfo.hand
-        })
+      const data = {
+        action: 'connect',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username
+      };
+
+      this.wsSend(data);
+    }
+  
+    this.ws.onmessage = evt => {
+      // listen to data sent from the websocket server
+      const content = JSON.parse(evt.data)
+      console.log('ws:', content.action);
+
+      // receive game info
+      switch (content.action) {
+
+        case 'updateGame':
+          let shouldStartCooldown = false
+          if (this.props.room.rounds.length > 0) {
+            const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
+            const newTurn = content.data.rounds[content.data.rounds.length - 1].currentTurn
+  
+            if (currentTurn < newTurn) {
+              shouldStartCooldown = true
+            }
+          }
+  
+          this.props.dispatch({ type: "UPDATE_GAME", value: content.data })
+  
+          if (shouldStartCooldown && this.props.room.currentPlayer === this.props.user.username) {
+            this.startCooldown()
+          }
+
+          break;
+        
+        default:
+          console.log('ERROR: no \'action\' defined')
+
       }
-    })
 
-    // receive game info
-    this.socket.on('updateGame', (room) => {
-      let shouldStartCooldown = false
-      if (this.props.room.rounds.length > 0) {
-        const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
-        const newTurn = room.rounds[room.rounds.length - 1].currentTurn
+    }
 
-        if (currentTurn < newTurn) {
-          shouldStartCooldown = true
-        }
-      }
+    this.ws.onclose = () => {
+      console.log('socket disconnected');
+      // automatically try to reconnect on connection loss
 
-      this.props.dispatch({ type: "UPDATE_GAME", value: room })
+      // this.wsSend();
+    }
 
-      if (shouldStartCooldown && this.props.room.currentPlayer === this.props.user.username) {
-        this.startCooldown()
-      }
-    })
 
-    // receive buy request
-    this.socket.on('player wants to buy', (username) => {
-      this.props.dispatch({ type: "PLAYER_WANTS_TO_BUY", value: username })
-    })
+    // // socket connect
+    // this.socket = io.connect(this.props.endpoint, { query: 'gameId='+gamePath })
+
+    // // socket login
+    // this.socket.emit('login', gamePath, username)
+
+    /******* DONE UNTIL HERE ************/
+
+    // // receive user info
+    // this.socket.on('updateUserInfo', (userInfo) => {
+    //   if (this.props.user.username === userInfo.username) {
+    //     this.props.dispatch({
+    //       type: "UPDATE_USER_INFO",
+    //       username: userInfo.username,
+    //       id: userInfo.id,
+    //       isOnline: userInfo.isOnline,
+    //       hand: userInfo.hand
+    //     })
+    //   }
+    // })
+
+
+    // // receive buy request
+    // this.socket.on('player wants to buy', (username) => {
+    //   this.props.dispatch({ type: "PLAYER_WANTS_TO_BUY", value: username })
+    // })
   }
 
 
