@@ -2,7 +2,7 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withRouter } from 'react-router-dom'
-import io from 'socket.io-client'
+// import io from 'socket.io-client'
 
 import RenderCards from './RenderCards'
 import { Container } from 'react-smooth-dnd'
