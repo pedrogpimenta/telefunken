@@ -80,16 +80,35 @@ class App extends Component {
   }
 
   handlePauseButton() {
-    this.socket.emit('player pauses', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'player pauses',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleBuying() {
-    this.socket.emit('player buys', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'player buys',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleAlsoWants() { 
     console.log('click also wants')
-    this.socket.emit('player also wants', this.props.room.name, this.props.user.username)
+    
+    const data = {
+      action: 'player also wants',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleIWantItBeforeButton() {
@@ -99,7 +118,13 @@ class App extends Component {
 
   handleNewRoundButton() {
     console.log('new round!!')
-    this.socket.emit('start new round', this.props.room.name)
+    const data = {
+      action: 'start new round',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleCardDrop(cardLocation, e) {
@@ -199,15 +224,15 @@ class App extends Component {
           value: newTable
         }) 
       }
-      
-      
-      
-      
-      this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
-      
 
+      const data = {
+        action: 'card movement',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username,
+        cardMovement: this.props.cardMovement,
+      };
 
-
+      this.wsSend(data)
 
       // remove previous drop info
       this.props.dispatch({
@@ -364,7 +389,13 @@ class App extends Component {
   }
 
   cancelPause() {
-    this.socket.emit('player cancels pause', this.props.room.name)
+    const data = {
+      action: 'player cancels pause',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   startCooldown() {
@@ -576,8 +607,24 @@ class App extends Component {
     this.state.ws.send(JSON.stringify(message))
   }
 
+  onUnload = e => { // the method that will be used for both add and remove event
+    // e.preventDefault();
+    // e.returnValue = '';
+    const data = {
+      action: 'disconnect',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data);
+  }
   componentDidMount() {
     this.connect()
+    window.addEventListener("beforeunload", this.onUnload);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("beforeunload", this.onUnload);
   }
 
   timeout = 250
@@ -658,8 +705,16 @@ class App extends Component {
       }
 
     }
-
+    
     ws.onclose = (e) => {
+      const data = {
+        action: 'disconnect',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username
+      };
+
+      this.wsSend(data);
+
       console.log(
         `Socket is closed. Reconnect will be attempted in ${Math.min(
           10000 / 1000,
