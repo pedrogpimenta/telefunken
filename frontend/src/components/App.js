@@ -72,11 +72,17 @@ class App extends Component {
   }
 
   handleTableUpdate() {
-    this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
+    // this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
   }
 
   sendToServer(action, content) {
-    this.socket.emit(action, this.props.room.gameId, this.props.user.username, content)
+    const data = {
+      action: action,
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handlePauseButton() {
@@ -113,7 +119,7 @@ class App extends Component {
 
   handleIWantItBeforeButton() {
     console.log('no, me!')
-    this.socket.emit('i want it before', this.props.room.gameId, this.props.user.username)
+    // this.socket.emit('i want it before', this.props.room.gameId, this.props.user.username)
   }
 
   handleNewRoundButton() {

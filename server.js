@@ -128,7 +128,7 @@ const initNewGame = function(gameId) {
     }, updatedRoom, function(err, doc) {
       if (err)  {
         // TODO: error message
-        game.to(gameId).emit('error')
+        // game.to(gameId).emit('error')
       } else {
         // update game to users
         sendGameInfo(gameId)
