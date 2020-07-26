@@ -561,9 +561,12 @@ class App extends Component {
     const playerPausedGame = this.props.room.playerPausedGame
     const isGamePaused = !!playerPausedGame
 
+    const userIndex = this.props.room.players.findIndex(player => player.name === this.props.user.username)
+    const canPlayerBuy = this.props.room.players[userIndex].buys > 0
+
     return (
       <div className="absolute right-0 top-0 -mt-2">
-        {!isGamePaused &&
+        {!isGamePaused && canPlayerBuy &&
           <Button
             disabled={isPauseButtonDisabled}
             classes='mx-2 font-bold bg-primary-300 border-primary-600 text-white'
@@ -572,8 +575,8 @@ class App extends Component {
             ¡Arriba las manos!
           </Button>
         }
-        {isGamePaused && this.renderPausePopup()}
-        {isGamePaused &&
+        {isGamePaused && canPlayerBuy && this.renderPausePopup()}
+        {isGamePaused && canPlayerBuy &&
           <Button
             disabled={true}
             classes='mx-2'
@@ -680,6 +683,7 @@ class App extends Component {
   
     ws.onmessage = evt => {
       // listen to data sent from the websocket server
+      console.log('evt.data:', evt.data)
       const content = JSON.parse(evt.data)
       console.log('ws:', content.action);
 
@@ -691,8 +695,9 @@ class App extends Component {
           if (this.props.room.rounds.length > 0) {
             const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
             const newTurn = content.data.rounds[content.data.rounds.length - 1].currentTurn
+            const areThereMoreThanTwoPlayers = this.props.room.players.length > 2
   
-            if (currentTurn < newTurn) {
+            if (currentTurn < newTurn && areThereMoreThanTwoPlayers) {
               shouldStartCooldown = true
             }
           }

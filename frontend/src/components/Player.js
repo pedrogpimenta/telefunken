@@ -7,16 +7,21 @@ function Player(props) {
 
   const userIndex = props.room.players.findIndex(player => player.name === props.user.username)
   const userHand = props.room.players[userIndex].hand
+  const userBuys = props.room.players[userIndex].buys
 
   return (
     <div className="relative inline-flex flex-col items-start w-full p-2">
       <div className="mx-2">
         {isCurrentPlayer &&
           <strong>
-            {props.user.username}
+            {props.user.username} ({userBuys})
           </strong>
         }
-        {!isCurrentPlayer && props.user.username}
+        {!isCurrentPlayer &&
+          <div>
+            {props.user.username} ({userBuys})
+          </div>
+        }
       </div>
       <div className="w-full">
         <RenderCards

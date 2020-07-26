@@ -518,6 +518,7 @@ wss.on('connection', ws => {
           } else {
             const newUser = {
               name: clientName,
+              buys: 6,
               isOnline: true
             }
 
@@ -773,6 +774,9 @@ wss.on('connection', ws => {
           for (let i in result) {
             roomObject.players[playerIndex].hand.push(result[i]) 
           }
+
+          // Subtract Buy from player
+          roomObject.players[playerIndex].buys = roomObject.players[playerIndex].buys - 1
 
           clearInterval(global.timer)
           roomObject.playerPausedGame = null

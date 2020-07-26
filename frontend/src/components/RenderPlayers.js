@@ -36,10 +36,14 @@ class RenderPlayers extends Component {
           <span className='mb-1'>
             {isCurrentPlayer(player.name) &&
               <strong>
-                {player.name}
+                {player.name} ({player.buys})
               </strong>
             }
-            {!isCurrentPlayer(player.name) && player.name}
+            {!isCurrentPlayer(player.name) &&
+              <div>
+                {player.name} ({player.buys})
+              </div>
+            }
             {this.props.room.currentRoundEnded &&
               <span className='font-bold ml-3 p-1 bg-gray-400 rounded'>
                 {userTotalPoints}
