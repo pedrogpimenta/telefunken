@@ -157,7 +157,6 @@ const sendGameInfo = function(gameId) {
           const thisGameDb = _.cloneDeep(gameDb)
     
           thisGameDb.stock = gameDb.stock.length
-          console.log('MAL?', thisGameDb.name, thisGameDb.players[i].name)
           wsSendToOne(thisGameDb.players[i].name, thisGameDb.name, {action: 'updateGame', data: thisGameDb})
           
         } else {
