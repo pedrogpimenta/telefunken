@@ -14,6 +14,7 @@ class Table extends Component {
       <RenderCards
         key={group.id}
         id={group.id}
+        groupCreator={group.groupCreator}
         cards={group.cards}
         location='table'
         onClick={this.props.onClick}

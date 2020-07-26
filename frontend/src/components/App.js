@@ -211,6 +211,7 @@ class App extends Component {
         }) 
       } else if (this.props.cardMovement?.to === 'table') {
         const newGroup = {
+          groupCreator: this.props.user.username,
           cards: [card]
         }
     

@@ -661,6 +661,7 @@ wss.on('connection', ws => {
             } else if (cardMovement.to === 'table') {
               const newGroup = {
                 id: tools.guidGenerator(),
+                groupCreator: clientName,
                 cards: [card]
               }
           

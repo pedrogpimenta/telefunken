@@ -125,6 +125,10 @@ class RenderCards extends Component {
                   </Draggable>)
                 )}
               </Container>
+              <div
+                className="absolute top-0 mt-2 text-xs font-bold text-gray-600"
+                style={{boxShadow: '-3px 0px #f7fafc, 3px 0px #f7fafc', backgroundColor: '#f7fafc'}}
+                >{this.props.groupCreator}</div>
             </div>
           )
         }
