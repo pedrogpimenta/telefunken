@@ -64,6 +64,9 @@ const initNewGame = function(gameId) {
     name: gameId
   }).then(roomObject => {
 
+    // don't repeat "new game" if already exists
+    if (roomObject.gameHasStarted) { return false }
+
     // make new deck
     roomObject.stock = tools.getDeck(2)
 
