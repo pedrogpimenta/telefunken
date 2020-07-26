@@ -426,7 +426,7 @@ wss.on('connection', ws => {
           currentPlayerHasGrabbedCard: false,
           playerWantsToBuy: '',
           playerWantsItBefore: '',
-          playerHasBought: false,
+          aPlayerHasBoughtThisTurn: false,
           pauseTime: 30,
           cooldownTime: 5,
           alsoWants: []
@@ -779,6 +779,7 @@ wss.on('connection', ws => {
           roomObject.players[playerIndex].buys = roomObject.players[playerIndex].buys - 1
 
           clearInterval(global.timer)
+          roomObject.aPlayerHasBoughtThisTurn = true
           roomObject.playerPausedGame = null
           roomObject.remainingTime = 0
 

@@ -556,7 +556,7 @@ class App extends Component {
   renderPauseButton() {
     const isPrevPlayerThisPlayer = this.props.room.prevPlayer === this.props.user.username
     const hasCurrentPlayerGrabbedCard = this.props.room.currentPlayerHasGrabbedCard
-    const isPauseButtonDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard
+    const isPauseButtonDisabled = isPrevPlayerThisPlayer || hasCurrentPlayerGrabbedCard || this.props.room.aPlayerHasBoughtThisTurn
 
     const playerPausedGame = this.props.room.playerPausedGame
     const isGamePaused = !!playerPausedGame
