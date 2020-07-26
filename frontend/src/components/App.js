@@ -313,7 +313,7 @@ class App extends Component {
     return (
       <div className='absolute bottom-0 left-0 ml-32 mb-2 inline-flex items-center justify-center'>
         {this.props.room.currentPlayer === this.props.user.username && this.props.turnCooldown > 0 && 
-          <div className='absolute top-0 left-0 w-12 md:w-16 h-full mx-2 inline-flex items-center justify-center z-40 font-bold text-2xl'>
+          <div className='absolute top-0 left-0 w-16 h-full px-2 inline-flex items-center justify-center z-40 font-bold text-2xl'>
             {this.props.turnCooldown}
           </div>
         }
