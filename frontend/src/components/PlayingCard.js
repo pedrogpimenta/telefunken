@@ -108,7 +108,7 @@ function PlayingCard(props) {
             }}>{renderSuit()}</span>
           }
           {!props.showCardValue &&
-            <span className="inline-flex font-bold">{props.value}</span>
+            <span className="inline-flex text-black font-bold">{props.value}</span>
           }
         </div>
       ) 

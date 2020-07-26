@@ -86,7 +86,7 @@ class RenderCards extends Component {
               key={card.id}
               id={card.id}
               value={showCardsLength}
-              suit='clubs'
+              suit={card.suit}
               type={this.props.location}
               showCardValue={showCardValue}
             />)
