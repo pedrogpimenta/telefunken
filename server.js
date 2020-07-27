@@ -65,10 +65,12 @@ const initNewGame = function(gameId) {
   }).then(roomObject => {
 
     // don't repeat "new game" if already exists
-    if (roomObject.gameHasStarted) { return false }
+    // if (roomObject.gameHasStarted) { return false }
+    if (roomObject.currentRoundEnded === false) { return false }
 
     // make new deck
     roomObject.stock = tools.getDeck(2)
+    roomObject.currentRoundEnded = false
 
     // grab 3 cards for discard
     roomObject.discard = roomObject.stock.splice(roomObject.stock.length - 3, 3)
@@ -870,7 +872,6 @@ wss.on('connection', ws => {
           roomObject.discard = []
           roomObject.stock = []
           roomObject.table = []
-          roomObject.currentRoundEnded = false
           roomObject.prevPlayer = null
           roomObject.currentTurn = 0
           roomObject.currentPlayerHasGrabbedCard = false
