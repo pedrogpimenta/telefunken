@@ -151,9 +151,6 @@ const sendGameInfo = function(gameId) {
     if (!!gameDb.players.length) {
       for (let i in gameDb.players) {
 
-        console.log('fekc:', gameDb.players)
-        console.log('MAL?', gameDb.name, gameDb.players[i].name)
-
         if (gameDb.currentRoundEnded) {
           console.log('########### SEND EVERYTHING')
           const thisGameDb = _.cloneDeep(gameDb)
@@ -229,12 +226,6 @@ const wsSendToOne = (clientName, gameId, content) => {
   for (var h=0; h<ROOMS.length; h++) {
     if (ROOMS[h].name === gameId) {
       for (var i=0; i<ROOMS[h].clients.length; i++) {
-        console.log('send to one => gameID:', gameId)
-        console.log('####### CLIENTS 1')
-        // console.log(ROOMS[h].clients)
-        console.log('####### CLIENTS 2')
-        console.log('in ROOMS[h].clients:', ROOMS[h].clients[i].clientName, '===', clientName)
-        console.log('in ROOMS[h].gameId:', ROOMS[h].clients[i].gameId, '===', gameId)
         if (ROOMS[h].clients[i].clientName === clientName) {
           console.log('### SEND TO PLAYER: ', clientName, 'in ROOM: ', gameId)
           ROOMS[h].clients[i].ws.send(JSON.stringify({action: content.action, data: content.data}))
@@ -564,7 +555,6 @@ wss.on('connection', ws => {
         break;
 
       case 'start game':
-        console.log('on start game, gameId:', gameId)
         initNewGame(gameId)
 
         break;

@@ -106,8 +106,6 @@ class App extends Component {
   }
 
   handleAlsoWants() { 
-    console.log('click also wants')
-    
     const data = {
       action: 'player also wants',
       gameId: this.props.gameId,
@@ -123,7 +121,7 @@ class App extends Component {
   }
 
   handleNewRoundButton() {
-    console.log('new round!!')
+    console.log('new round!')
     const data = {
       action: 'start new round',
       gameId: this.props.gameId,
@@ -684,9 +682,7 @@ class App extends Component {
   
     ws.onmessage = evt => {
       // listen to data sent from the websocket server
-      console.log('evt.data:', evt.data)
       const content = JSON.parse(evt.data)
-      console.log('ws:', content.action);
 
       // receive game info
       switch (content.action) {
