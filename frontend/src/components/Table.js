@@ -26,7 +26,7 @@ class Table extends Component {
 
   render () {
     return (
-      <div className="relative flex flex-col  sm:flex-row sm:flex-wrap items-start justify-center w-full h-full pt-4">
+      <div className="relative flex flex-col  sm:flex-row sm:flex-wrap items-start justify-center w-full h-full pt-6">
         {this.props.room.table && 
           this.renderTableGroups()
         }

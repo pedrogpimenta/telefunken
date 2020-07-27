@@ -96,7 +96,7 @@ class RenderCards extends Component {
           const willAcceptDrop = this.props.room.currentPlayer === this.props.user.username && this.props.room.currentPlayerHasGrabbedCard
 
           return (
-            <div className="border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10 tableGroupSm md:tableGroupMd">
+            <div className="relative border-2 border-dashed border-gray-400 rounded-lg mx-4 p-1 z-10 tableGroupSm md:tableGroupMd">
               <Container
                 style={{
                   display: 'flex',
@@ -110,24 +110,49 @@ class RenderCards extends Component {
                 onDragEnd={(e) => {this.handleCardDragEnd(this.props.id, e)}}
                 onDrop={(e) => {this.props.handleCardDrop(this.props.id, e)}}
               >
-                {this.props.cards.map((card, index) => (
-                  <Draggable
-                    key={index}
-                    className="inline-flex w-8"
-                    // style={{width: '1.5rem'}}
-                  >
-                    <PlayingCard
-                      key={card.id}
-                      id={card.id}
-                      value={card.value}
-                      suit={card.suit}
-                    />
-                  </Draggable>)
+                {this.props.cards.map((card, index) => {
+                  if (willAcceptDrop) {
+                    return (
+                      <Draggable
+                        key={index}
+                        className="inline-flex w-8"
+                        // style={{width: '1.5rem'}}
+                      >
+                        <PlayingCard
+                          key={card.id}
+                          id={card.id}
+                          value={card.value}
+                          suit={card.suit}
+                        />
+                      </Draggable>
+                    )
+                  } else {
+                    return (
+                      <div
+                        key={index}
+                        className="inline-flex w-8"
+                        // style={{width: '1.5rem'}}
+                      >
+                        <PlayingCard
+                          key={card.id}
+                          id={card.id}
+                          value={card.value}
+                          suit={card.suit}
+                        />
+                      </div>
+                    )
+
+                  }
+                }
                 )}
               </Container>
               <div
-                className="absolute top-0 mt-2 text-xs font-bold text-gray-600"
-                style={{boxShadow: '-3px 0px #f7fafc, 3px 0px #f7fafc', backgroundColor: '#f7fafc'}}
+                className="absolute -mt-2 text-xs font-bold text-gray-600"
+                style={{
+                  boxShadow: '-3px 0px #f7fafc, 3px 0px #f7fafc',
+                  backgroundColor: '#f7fafc',
+                  top: `-3px`
+                }}
                 >{this.props.groupCreator}</div>
             </div>
           )
