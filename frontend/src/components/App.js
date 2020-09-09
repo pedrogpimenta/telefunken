@@ -639,7 +639,7 @@ class App extends Component {
 
   connect = () => {
     // const ws = new WebSocket(`ws://localhost:4001/`)
-    const ws = new WebSocket(`ws:${process.env.REACT_APP_HEROKU_SOCKET_ENDPOINT}/`)
+    const ws = new WebSocket('ws://telefunken.pimenta.co/game')
     let that = this // cache the this
     var connectInterval
 
