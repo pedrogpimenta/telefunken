@@ -2,7 +2,7 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { withRouter } from 'react-router-dom'
-import io from 'socket.io-client'
+// import io from 'socket.io-client'
 
 import RenderCards from './RenderCards'
 import { Container } from 'react-smooth-dnd'
@@ -16,6 +16,10 @@ import RenderPlayers from './RenderPlayers'
 class App extends Component {
   constructor () {
     super()
+
+    this.state = {
+      ws: null
+    };
 
     this.handleStartGameButton = this.handleStartGameButton.bind(this)
     this.handleCardClick = this.handleCardClick.bind(this)
@@ -42,7 +46,12 @@ class App extends Component {
   // ------------------- 
 
   handleStartGameButton() {
-    this.socket.emit('start game', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'start game',
+      gameId: this.props.gameId,
+    };
+
+    this.wsSend(data)
   }
 
   handleCardClick(cardType) {
@@ -52,39 +61,76 @@ class App extends Component {
     if (cardType === 'stock') {
       if (this.props.room.currentPlayerHasGrabbedCard || this.props.room.playerPausedGame) { return false }
 
-      this.socket.emit('card from stock to user', this.props.room.name, this.props.user.username)
+      const data = {
+        action: 'card from stock to user',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username,
+      };
+
+      this.wsSend(data)
     }
   }
 
   handleTableUpdate() {
-    this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
+    // this.socket.emit('update table', this.props.room.gameId, this.props.room.table)
   }
 
   sendToServer(action, content) {
-    this.socket.emit(action, this.props.room.gameId, this.props.user.username, content)
+    const data = {
+      action: action,
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handlePauseButton() {
-    this.socket.emit('player pauses', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'player pauses',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleBuying() {
-    this.socket.emit('player buys', this.props.room.name, this.props.user.username)
+    const data = {
+      action: 'player buys',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleAlsoWants() { 
     console.log('click also wants')
-    this.socket.emit('player also wants', this.props.room.name, this.props.user.username)
+    
+    const data = {
+      action: 'player also wants',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleIWantItBeforeButton() {
     console.log('no, me!')
-    this.socket.emit('i want it before', this.props.room.gameId, this.props.user.username)
+    // this.socket.emit('i want it before', this.props.room.gameId, this.props.user.username)
   }
 
   handleNewRoundButton() {
     console.log('new round!!')
-    this.socket.emit('start new round', this.props.room.name)
+    const data = {
+      action: 'start new round',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   handleCardDrop(cardLocation, e) {
@@ -184,15 +230,15 @@ class App extends Component {
           value: newTable
         }) 
       }
-      
-      
-      
-      
-      this.socket.emit('card movement', this.props.room.name, this.props.user.username, this.props.cardMovement)
-      
 
+      const data = {
+        action: 'card movement',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username,
+        cardMovement: this.props.cardMovement,
+      };
 
-
+      this.wsSend(data)
 
       // remove previous drop info
       this.props.dispatch({
@@ -331,8 +377,8 @@ class App extends Component {
             <p>Hoy en combate:</p>
             <ul>
               {this.props.room.connectedUsers.map(user => (
-                <li key={`userList-${user.id}`}>
-                {user.name}
+                <li key={`userList-${user.name}`}>
+                  {user.name}
                 </li>
               ))}
             </ul>
@@ -349,7 +395,13 @@ class App extends Component {
   }
 
   cancelPause() {
-    this.socket.emit('player cancels pause', this.props.room.name)
+    const data = {
+      action: 'player cancels pause',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data)
   }
 
   startCooldown() {
@@ -557,7 +609,42 @@ class App extends Component {
   // life cycle functions
   // ------------------- 
 
+  wsSend = (message) => {
+    this.state.ws.send(JSON.stringify(message))
+  }
+
+  onUnload = e => { // the method that will be used for both add and remove event
+    // e.preventDefault();
+    // e.returnValue = '';
+    const data = {
+      action: 'disconnect',
+      gameId: this.props.gameId,
+      clientName: this.props.user.username,
+    };
+
+    this.wsSend(data);
+  }
   componentDidMount() {
+    this.connect()
+    window.addEventListener("beforeunload", this.onUnload);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("beforeunload", this.onUnload);
+  }
+
+  timeout = 250
+
+  connect = () => {
+    const ws = new WebSocket(`ws://localhost:4001/`)
+    let that = this // cache the this
+    var connectInterval
+
+    this.setState({ ws: ws })
+    
+    that.timeout = 250 // reset timer to 250 on open of websocket connection 
+    clearTimeout(connectInterval) // clear Interval on on open of websocket connection
+
     // set gameID from path
     const gamePath = window.location.pathname.split('/')[2]
     this.props.dispatch({ type: "SET_GAMEID", gameId: gamePath })
@@ -578,48 +665,106 @@ class App extends Component {
     // socket functions
     // ------------------- 
 
-    // socket connect
-    this.socket = io.connect(this.props.endpoint, { query: 'gameId='+gamePath })
+    ws.onopen = () => {
+      // on connecting, do nothing but log it to the console
+      console.log('socket connected');
 
-    // socket login
-    this.socket.emit('login', gamePath, username)
+      const data = {
+        action: 'connect',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username
+      };
 
-    // receive user info
-    this.socket.on('updateUserInfo', (userInfo) => {
-      if (this.props.user.username === userInfo.username) {
-        this.props.dispatch({
-          type: "UPDATE_USER_INFO",
-          username: userInfo.username,
-          id: userInfo.id,
-          isOnline: userInfo.isOnline,
-          hand: userInfo.hand
-        })
+      this.wsSend(data);
+    }
+  
+    ws.onmessage = evt => {
+      // listen to data sent from the websocket server
+      const content = JSON.parse(evt.data)
+      console.log('ws:', content.action);
+
+      // receive game info
+      switch (content.action) {
+
+        case 'updateGame':
+          let shouldStartCooldown = false
+          if (this.props.room.rounds.length > 0) {
+            const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
+            const newTurn = content.data.rounds[content.data.rounds.length - 1].currentTurn
+  
+            if (currentTurn < newTurn) {
+              shouldStartCooldown = true
+            }
+          }
+  
+          this.props.dispatch({ type: "UPDATE_GAME", value: content.data })
+  
+          if (shouldStartCooldown && this.props.room.currentPlayer === this.props.user.username) {
+            this.startCooldown()
+          }
+
+          break;
+        
+        default:
+          console.log('ERROR: no \'action\' defined')
+
       }
-    })
 
-    // receive game info
-    this.socket.on('updateGame', (room) => {
-      let shouldStartCooldown = false
-      if (this.props.room.rounds.length > 0) {
-        const currentTurn = this.props.room.rounds[this.props.room.rounds.length - 1].currentTurn
-        const newTurn = room.rounds[room.rounds.length - 1].currentTurn
+    }
+    
+    ws.onclose = (e) => {
+      const data = {
+        action: 'disconnect',
+        gameId: this.props.gameId,
+        clientName: this.props.user.username
+      };
 
-        if (currentTurn < newTurn) {
-          shouldStartCooldown = true
-        }
-      }
+      this.wsSend(data);
 
-      this.props.dispatch({ type: "UPDATE_GAME", value: room })
+      console.log(
+        `Socket is closed. Reconnect will be attempted in ${Math.min(
+          10000 / 1000,
+          (that.timeout + that.timeout) / 1000
+        )} second.`,
+        e.reason
+      );
+        
+      that.timeout = that.timeout + that.timeout; //increment retry interval
+      connectInterval = setTimeout(check, Math.min(10000, that.timeout)); //call check function after timeout
+    }
+    
+    const check = () => {
+      const { ws } = this.state;
+      if (!ws || ws.readyState == WebSocket.CLOSED) this.connect(); //check if websocket instance is closed, if so call `connect` function.
+    };
 
-      if (shouldStartCooldown && this.props.room.currentPlayer === this.props.user.username) {
-        this.startCooldown()
-      }
-    })
 
-    // receive buy request
-    this.socket.on('player wants to buy', (username) => {
-      this.props.dispatch({ type: "PLAYER_WANTS_TO_BUY", value: username })
-    })
+    // // socket connect
+    // this.socket = io.connect(this.props.endpoint, { query: 'gameId='+gamePath })
+
+    // // socket login
+    // this.socket.emit('login', gamePath, username)
+
+    /******* DONE UNTIL HERE ************/
+
+    // // receive user info
+    // this.socket.on('updateUserInfo', (userInfo) => {
+    //   if (this.props.user.username === userInfo.username) {
+    //     this.props.dispatch({
+    //       type: "UPDATE_USER_INFO",
+    //       username: userInfo.username,
+    //       id: userInfo.id,
+    //       isOnline: userInfo.isOnline,
+    //       hand: userInfo.hand
+    //     })
+    //   }
+    // })
+
+
+    // // receive buy request
+    // this.socket.on('player wants to buy', (username) => {
+    //   this.props.dispatch({ type: "PLAYER_WANTS_TO_BUY", value: username })
+    // })
   }
 
 

@@ -55,7 +55,8 @@ class Welcome extends Component {
           <h2>¿Qué pasa, pisha?</h2>
         }
         {!this.state.username.length &&
-          <h2>¡Holi, soy el Telecutren!</h2>
+          <h2>¡Holi, soy el Telecutren!<br /><small><strong>websockets</strong></small></h2>
+          
         }
         <form action="submit">
           {!this.state.username.length &&
